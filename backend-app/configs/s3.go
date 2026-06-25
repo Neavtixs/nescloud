@@ -14,6 +14,14 @@ import (
 type S3Config struct {
 	Client        *s3.Client
 	PresignClient *s3.PresignClient
+	Bucket        string
+}
+
+func (s *S3Config) HealthCheck(ctx context.Context) error {
+	_, err := s.Client.HeadBucket(ctx, &s3.HeadBucketInput{
+		Bucket: aws.String(s.Bucket),
+	})
+	return err
 }
 
 func NewS3() *S3Config {
@@ -22,6 +30,7 @@ func NewS3() *S3Config {
 	accessKeyID := os.Getenv("S3_ACCESS_KEY_ID")
 	secretAccessKey := os.Getenv("S3_SECRET_ACCESS_KEY")
 	endpointURL := os.Getenv("S3_ENDPOINT_URL")
+	bucket := os.Getenv("S3_BUCKET")
 
 	cfg, err := config.LoadDefaultConfig(ctx,
 		config.WithRegion("us-east-1"),
@@ -42,5 +51,6 @@ func NewS3() *S3Config {
 	return &S3Config{
 		Client:        client,
 		PresignClient: presignClient,
+		Bucket:        bucket,
 	}
 }

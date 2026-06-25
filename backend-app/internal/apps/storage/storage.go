@@ -3,8 +3,6 @@ package storage
 import (
 	"context"
 	"fmt"
-	"os"
-	"strings"
 	"time"
 
 	"nescloud/backend-app/configs"
@@ -20,15 +18,10 @@ type Storage struct {
 }
 
 func NewStorage(s3cfg *configs.S3Config) *Storage {
-	bucket := os.Getenv("S3_BUCKET")
-	if strings.TrimSpace(bucket) == "" {
-		bucket = "default"
-	}
-
 	return &Storage{
 		client:        s3cfg.Client,
 		presignClient: s3cfg.PresignClient,
-		bucket:        bucket,
+		bucket:        s3cfg.Bucket,
 	}
 }
 
