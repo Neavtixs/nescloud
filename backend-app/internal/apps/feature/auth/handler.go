@@ -1,6 +1,14 @@
 package auth
 
 import (
+	"errors"
+	"net/http"
+
+	"nescloud/backend-app/internal/dto"
+	"nescloud/backend-app/internal/errs"
+	"nescloud/backend-app/internal/helper"
+
+	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"github.com/sirupsen/logrus"
 )
@@ -17,4 +25,44 @@ func NewHandler(service *Service, validate *validator.Validate, log *logrus.Logg
 		Validate: validate,
 		Log:      log,
 	}
+}
+
+func (h *Handler) RegisterHandler(c *gin.Context) {
+	log := helper.NewLog(h.Log, c)
+
+	var req dto.AuthRegisterReq
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorWeb{Message: "invalid request format"})
+		return
+	}
+
+	if err := h.Validate.Struct(req); err != nil {
+		c.JSON(http.StatusBadRequest, dto.ResponseWeb[map[string]string]{
+			Message: "validation failed",
+			Data:    helper.ValidationMsg(err),
+		})
+		return
+	}
+
+	input := &dto.InputAuthRegister{
+		Ctx:      c.Request.Context(),
+		Name:     req.Name,
+		Email:    req.Email,
+		Password: req.Password,
+	}
+
+	_, err := h.Service.Register(input)
+	if err != nil {
+		if errors.Is(err, errs.ErrEmailAlreadyExists) {
+			c.JSON(http.StatusConflict, dto.ErrorWeb{Message: err.Error()})
+			return
+		}
+		log.WithField("layer", "auth_handler").Error(err)
+		c.JSON(http.StatusInternalServerError, dto.ErrorWeb{Message: errs.ErrInternal.Error()})
+		return
+	}
+
+	c.JSON(http.StatusCreated, dto.ResponseWeb[any]{
+		Message: "register user success",
+	})
 }

@@ -11,13 +11,14 @@ import (
 	"nescloud/backend-app/internal/apps/feature/publiclink"
 	"nescloud/backend-app/internal/apps/feature/trash"
 	"nescloud/backend-app/internal/apps/storage"
+	"nescloud/backend-app/internal/route"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/redis/go-redis/v9"
 	"github.com/sirupsen/logrus"
 )
 
-func InitDependencies(db *sql.DB, rdb *redis.Client, validate *validator.Validate, log *logrus.Logger) {
+func InitDependencies(db *sql.DB, rdb *redis.Client, validate *validator.Validate, log *logrus.Logger) *route.Handler {
 	userRepo := repository.NewUserRepo()
 	quotaRepo := repository.NewQuotaRepo()
 	folderRepo := repository.NewFolderRepo()
@@ -29,7 +30,7 @@ func InitDependencies(db *sql.DB, rdb *redis.Client, validate *validator.Validat
 	store := storage.NewStorage(s3cfg)
 
 	authService := auth.NewService(db, rdb, userRepo, quotaRepo)
-	_ = auth.NewHandler(authService, validate, log)
+	authHandler := auth.NewHandler(authService, validate, log)
 
 	folderService := folder.NewService(db, folderRepo)
 	_ = folder.NewHandler(folderService, validate, log)
@@ -44,4 +45,6 @@ func InitDependencies(db *sql.DB, rdb *redis.Client, validate *validator.Validat
 	_ = trash.NewHandler(trashService, validate, log)
 
 	_ = auditLogRepo
+
+	return route.NewHandler(authHandler)
 }
