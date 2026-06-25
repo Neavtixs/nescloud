@@ -16,10 +16,6 @@ type AuthLoginReq struct {
 	Password string `json:"password" validate:"required"`
 }
 
-type AuthRefreshReq struct {
-	RefreshToken string `json:"refresh_token" validate:"required"`
-}
-
 type AuthMeRes struct {
 	ID        string `json:"id"`
 	Name      string `json:"name"`

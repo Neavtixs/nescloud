@@ -22,8 +22,8 @@ type InputAuthRefresh struct {
 
 type ResultAuthLogin struct {
 	AccessToken  string `json:"access_token"`
-	RefreshToken string `json:"refresh_token"`
-	ExpiresIn    int    `json:"expires_in"`
+	RefreshToken string
+	ExpiresIn    int `json:"expires_in"`
 }
 
 type ResultAuthMe struct {
@@ -34,5 +34,7 @@ type ResultAuthMe struct {
 }
 
 type ResultAuthRegister struct {
-	ID string
+	ID           string `json:"-"`
+	AccessToken  string `json:"access_token"`
+	RefreshToken string
 }

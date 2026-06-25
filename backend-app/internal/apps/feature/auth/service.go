@@ -2,11 +2,13 @@ package auth
 
 import (
 	"database/sql"
+	"fmt"
 	"time"
 
 	"nescloud/backend-app/internal/apps/domain/entity"
 	"nescloud/backend-app/internal/apps/domain/repository"
 	"nescloud/backend-app/internal/dto"
+	"nescloud/backend-app/internal/helper"
 
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
@@ -74,5 +76,20 @@ func (s *Service) Register(input *dto.InputAuthRegister) (*dto.ResultAuthRegiste
 		return nil, err
 	}
 
-	return &dto.ResultAuthRegister{ID: userID}, nil
+	accessToken, err := helper.GenerateAccessToken(userID)
+	if err != nil {
+		return nil, err
+	}
+
+	refreshToken := uuid.NewString()
+	refreshTokenKey := fmt.Sprintf("refresh_token:%s", refreshToken)
+	if err := s.Redis.Set(input.Ctx, refreshTokenKey, userID, 7*24*time.Hour).Err(); err != nil {
+		return nil, err
+	}
+
+	return &dto.ResultAuthRegister{
+		ID:           userID,
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
+	}, nil
 }

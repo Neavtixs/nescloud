@@ -11,13 +11,13 @@ Cloud Storage Web Application
 Development
 
 ```
-http://localhost:8080/api/v1
+http://localhost:8080/api
 ```
 
 Production
 
 ```
-https://api.example.com/api/v1
+https://api.example.com/api
 ```
 
 ---
@@ -28,13 +28,19 @@ Menggunakan
 
 ```
 JWT Access Token
-Refresh Token
+Refresh Token (HttpOnly Cookie)
 ```
 
 Access Token dikirim melalui
 
 ```
 Authorization: Bearer <token>
+```
+
+Refresh Token dikirim melalui HttpOnly Cookie
+
+```
+Set-Cookie: refresh_token=<uuid>; HttpOnly; Secure; SameSite=Lax; Path=/api/auth; MaxAge=604800
 ```
 
 ---
@@ -54,8 +60,7 @@ Error
 
 ```json
 {
-  "message": "Unauthorized",
-  "errors": {}
+  "message": "Unauthorized"
 }
 ```
 
@@ -82,7 +87,7 @@ Error
 
 # Authentication
 
-## Register
+## Register — ✅ Implemented
 
 POST
 
@@ -100,17 +105,22 @@ Request
 }
 ```
 
-Response
+Response `201 Created`
 
 ```json
 {
-  "message": "register user success"
+  "message": "register user success",
+  "data": {
+    "access_token": "<jwt>"
+  }
 }
 ```
 
+Set-Cookie: `refresh_token=<uuid>; HttpOnly; Secure; SameSite=Lax; Path=/api/auth; MaxAge=604800`
+
 ---
 
-## Login
+## Login — ❌ Not implemented
 
 POST
 
@@ -118,19 +128,32 @@ POST
 /auth/login
 ```
 
-Response
+Request
 
 ```json
 {
-  "access_token": "",
-  "refresh_token": "",
-  "expires_in": 900
+  "email": "lawrient@mail.com",
+  "password": "password"
 }
 ```
 
+Response `200 OK`
+
+```json
+{
+  "message": "login user success",
+  "data": {
+    "access_token": "<jwt>",
+    "expires_in": 900
+  }
+}
+```
+
+Set-Cookie: `refresh_token=<uuid>; HttpOnly; Secure; SameSite=Lax; Path=/api/auth; MaxAge=604800`
+
 ---
 
-## Refresh Token
+## Refresh Token — ❌ Not implemented
 
 POST
 
@@ -140,15 +163,25 @@ POST
 
 Request
 
+Tidak ada request body. `refresh_token` dibaca dari cookie.
+
+Response `200 OK`
+
 ```json
 {
-  "refresh_token": "..."
+  "message": "token refreshed",
+  "data": {
+    "access_token": "<jwt>",
+    "expires_in": 900
+  }
 }
 ```
 
+Set-Cookie: `refresh_token=<new-uuid>; HttpOnly; Secure; SameSite=Lax; Path=/api/auth; MaxAge=604800` (rotate token)
+
 ---
 
-## Logout
+## Logout — ❌ Not implemented
 
 POST
 
@@ -156,11 +189,19 @@ POST
 /auth/logout
 ```
 
-Menghapus Refresh Token.
+Response `200 OK`
+
+```json
+{
+  "message": "logout success"
+}
+```
+
+Menghapus Refresh Token dari Redis dan clear cookie: `Set-Cookie: refresh_token=; MaxAge=0; HttpOnly; Secure; SameSite=Lax; Path=/api/auth`
 
 ---
 
-## Current User
+## Current User — ❌ Not implemented
 
 GET
 
@@ -188,7 +229,7 @@ Response
 
 ---
 
-# Folder
+# Folder — ❌ All not implemented
 
 ## Create Folder
 
@@ -204,6 +245,17 @@ Request
 {
   "parent_folder_id": "",
   "name": "Documents"
+}
+```
+
+Response `201 Created`
+
+```json
+{
+  "message": "folder created",
+  "data": {
+    "id": "uuid"
+  }
 }
 ```
 
@@ -223,6 +275,21 @@ Query
 parent_folder_id=
 ```
 
+Response `200 OK`
+
+```json
+{
+  "message": "success",
+  "data": [],
+  "pagination": {
+    "page": 1,
+    "limit": 20,
+    "total": 0,
+    "total_pages": 0
+  }
+}
+```
+
 ---
 
 ## Rename Folder
@@ -233,6 +300,26 @@ PATCH
 /folders/{id}
 ```
 
+Request
+
+```json
+{
+  "name": "New Name"
+}
+```
+
+Response `200 OK`
+
+```json
+{
+  "message": "folder renamed",
+  "data": {
+    "id": "uuid",
+    "name": "New Name"
+  }
+}
+```
+
 ---
 
 ## Delete Folder
@@ -241,6 +328,14 @@ DELETE
 
 ```
 /folders/{id}
+```
+
+Response `200 OK`
+
+```json
+{
+  "message": "folder moved to trash"
+}
 ```
 
 Masuk Trash.
@@ -255,9 +350,17 @@ POST
 /trash/folders/{id}/restore
 ```
 
+Response `200 OK`
+
+```json
+{
+  "message": "folder restored"
+}
+```
+
 ---
 
-# File Upload
+# File Upload — ❌ All not implemented
 
 Upload menggunakan Presigned URL.
 
@@ -289,20 +392,23 @@ Request
 
 ```json
 {
-  "folder_id": "",
+  "folder_id": "uuid",
   "file_name": "photo.png",
   "mime_type": "image/png",
   "size": 102400
 }
 ```
 
-Response
+Response `201 Created`
 
 ```json
 {
-  "file_id": "",
-  "upload_url": "",
-  "expired_at": "..."
+  "message": "upload initialized",
+  "data": {
+    "file_id": "uuid",
+    "upload_url": "https://s3...",
+    "expired_at": "2026-06-25T10:15:00Z"
+  }
 }
 ```
 
@@ -330,6 +436,17 @@ Request
 }
 ```
 
+Response `200 OK`
+
+```json
+{
+  "message": "upload completed",
+  "data": {
+    "file_id": "uuid"
+  }
+}
+```
+
 Action
 
 - Validasi object exists
@@ -338,7 +455,7 @@ Action
 
 ---
 
-# File
+# File — ❌ All not implemented
 
 ## Get File List
 
@@ -351,10 +468,25 @@ GET
 Query
 
 ```
-folder_id
-page
-limit
-search
+?folder_id=uuid
+&page=1
+&limit=20
+&search=holiday
+```
+
+Response `200 OK`
+
+```json
+{
+  "message": "success",
+  "data": [],
+  "pagination": {
+    "page": 1,
+    "limit": 20,
+    "total": 0,
+    "total_pages": 0
+  }
+}
 ```
 
 ---
@@ -365,6 +497,22 @@ GET
 
 ```
 /files/{id}
+```
+
+Response `200 OK`
+
+```json
+{
+  "message": "success",
+  "data": {
+    "id": "uuid",
+    "original_name": "photo.png",
+    "mime_type": "image/png",
+    "size": 102400,
+    "folder_id": "uuid",
+    "created_at": "2026-06-25T10:00:00Z"
+  }
+}
 ```
 
 ---
@@ -385,6 +533,18 @@ Request
 }
 ```
 
+Response `200 OK`
+
+```json
+{
+  "message": "file renamed",
+  "data": {
+    "id": "uuid",
+    "original_name": "holiday.png"
+  }
+}
+```
+
 Storage Key tidak berubah.
 
 ---
@@ -395,6 +555,14 @@ DELETE
 
 ```
 /files/{id}
+```
+
+Response `200 OK`
+
+```json
+{
+  "message": "file moved to trash"
+}
 ```
 
 Masuk Trash.
@@ -409,19 +577,22 @@ GET
 /files/{id}/download
 ```
 
-Response
+Response `200 OK`
 
 Backend membuat Presigned Download URL.
 
 ```json
 {
-  "download_url": "..."
+  "message": "success",
+  "data": {
+    "download_url": "https://s3..."
+  }
 }
 ```
 
 ---
 
-# Public Link
+# Public Link — ❌ All not implemented
 
 ## Generate
 
@@ -431,11 +602,14 @@ POST
 /files/{id}/public-link
 ```
 
-Response
+Response `201 Created`
 
 ```json
 {
-  "url": "https://..."
+  "message": "public link created",
+  "data": {
+    "url": "https://..."
+  }
 }
 ```
 
@@ -449,9 +623,17 @@ DELETE
 /files/{id}/public-link
 ```
 
+Response `200 OK`
+
+```json
+{
+  "message": "public link revoked"
+}
+```
+
 ---
 
-## [118;1:3uAccess Public File
+## Access Public File
 
 GET
 
@@ -465,7 +647,7 @@ Tidak diperlukan.
 
 ---
 
-# Trash
+# Trash — ❌ All not implemented
 
 ## Get Trash
 
@@ -473,6 +655,18 @@ GET
 
 ```
 /trash
+```
+
+Response `200 OK`
+
+```json
+{
+  "message": "success",
+  "data": {
+    "files": [],
+    "folders": []
+  }
+}
 ```
 
 ---
@@ -485,6 +679,14 @@ POST
 /trash/files/{id}/restore
 ```
 
+Response `200 OK`
+
+```json
+{
+  "message": "file restored"
+}
+```
+
 ---
 
 ## Restore Folder
@@ -495,6 +697,14 @@ POST
 /trash/folders/{id}/restore
 ```
 
+Response `200 OK`
+
+```json
+{
+  "message": "folder restored"
+}
+```
+
 ---
 
 ## Permanent Delete File
@@ -503,6 +713,14 @@ DELETE
 
 ```
 /trash/files/{id}
+```
+
+Response `200 OK`
+
+```json
+{
+  "message": "file permanently deleted"
+}
 ```
 
 Action
@@ -521,6 +739,14 @@ DELETE
 /trash/folders/{id}
 ```
 
+Response `200 OK`
+
+```json
+{
+  "message": "folder permanently deleted"
+}
+```
+
 Menghapus seluruh isi folder.
 
 ---
@@ -533,11 +759,19 @@ DELETE
 /trash
 ```
 
+Response `200 OK`
+
+```json
+{
+  "message": "trash emptied"
+}
+```
+
 Menghapus seluruh isi Trash.
 
 ---
 
-# Search
+# Search — ❌ Not implemented
 
 GET
 
@@ -559,7 +793,7 @@ original_name
 
 ---
 
-# Pagination
+# Pagination — ❌ Not implemented
 
 Request
 
@@ -584,7 +818,7 @@ Response
 
 ---
 
-# Scheduler
+# Scheduler — ❌ Not implemented
 
 ## Auto Trash
 

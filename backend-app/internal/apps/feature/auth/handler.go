@@ -51,7 +51,7 @@ func (h *Handler) RegisterHandler(c *gin.Context) {
 		Password: req.Password,
 	}
 
-	_, err := h.Service.Register(input)
+	result, err := h.Service.Register(input)
 	if err != nil {
 		if errors.Is(err, errs.ErrEmailAlreadyExists) {
 			c.JSON(http.StatusConflict, dto.ErrorWeb{Message: err.Error()})
@@ -62,7 +62,10 @@ func (h *Handler) RegisterHandler(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, dto.ResponseWeb[any]{
+	c.SetCookie("refresh_token", result.RefreshToken, 604800, "/api/auth", "", false, true)
+
+	c.JSON(http.StatusCreated, dto.ResponseWeb[*dto.ResultAuthRegister]{
 		Message: "register user success",
+		Data:    result,
 	})
 }

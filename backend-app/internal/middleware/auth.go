@@ -2,14 +2,13 @@ package middleware
 
 import (
 	"net/http"
-	"os"
 	"strings"
 
 	"nescloud/backend-app/internal/dto"
 	"nescloud/backend-app/internal/errs"
+	"nescloud/backend-app/internal/helper"
 
 	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt/v5"
 )
 
 func Authorization() gin.HandlerFunc {
@@ -26,31 +25,8 @@ func Authorization() gin.HandlerFunc {
 			return
 		}
 
-		secret := os.Getenv("JWT_SECRET")
-		if strings.TrimSpace(secret) == "" {
-			secret = "default-secret"
-		}
-
-		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-				return nil, errs.ErrInvalidAccessToken
-			}
-			return []byte(secret), nil
-		})
-
-		if err != nil || !token.Valid {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, dto.ErrorWeb{Message: errs.ErrInvalidAccessToken.Error()})
-			return
-		}
-
-		claims, ok := token.Claims.(jwt.MapClaims)
-		if !ok {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, dto.ErrorWeb{Message: errs.ErrInvalidAccessToken.Error()})
-			return
-		}
-
-		userID, ok := claims["user_id"].(string)
-		if !ok || userID == "" {
+		userID, err := helper.ValidateAccessToken(tokenString)
+		if err != nil {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, dto.ErrorWeb{Message: errs.ErrInvalidAccessToken.Error()})
 			return
 		}
