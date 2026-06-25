@@ -16,6 +16,15 @@ type AuthLoginReq struct {
 	Password string `json:"password" validate:"required"`
 }
 
+type AuthRegisterRes struct {
+	AccessToken string `json:"access_token"`
+}
+
+type AuthLoginRes struct {
+	AccessToken string `json:"access_token"`
+	ExpiresIn   int    `json:"expires_in"`
+}
+
 type AuthMeRes struct {
 	ID        string `json:"id"`
 	Name      string `json:"name"`

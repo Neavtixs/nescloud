@@ -116,7 +116,7 @@ Response `201 Created`
 }
 ```
 
-Set-Cookie: `refresh_token=<uuid>; HttpOnly; Secure; SameSite=Lax; Path=/api/auth; MaxAge=604800`
+Set-Cookie: `refresh_token=<uuid>; HttpOnly; Secure; SameSite=Lax; Path=/api/auth; MaxAge=604800`: `refresh_token=<uuid>; HttpOnly; Secure; SameSite=Lax; Path=/api/auth; MaxAge=604800`
 
 ---
 

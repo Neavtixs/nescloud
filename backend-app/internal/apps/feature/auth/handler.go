@@ -64,8 +64,10 @@ func (h *Handler) RegisterHandler(c *gin.Context) {
 
 	c.SetCookie("refresh_token", result.RefreshToken, 604800, "/api/auth", "", false, true)
 
-	c.JSON(http.StatusCreated, dto.ResponseWeb[*dto.ResultAuthRegister]{
+	c.JSON(http.StatusCreated, dto.ResponseWeb[dto.AuthRegisterRes]{
 		Message: "register user success",
-		Data:    result,
+		Data: dto.AuthRegisterRes{
+			AccessToken: result.AccessToken,
+		},
 	})
 }
