@@ -20,5 +20,6 @@ func (h *Handler) SetupRoute(app *gin.Engine) {
 	public := api.Group("")
 	{
 		public.POST("/auth/register", h.Auth.RegisterHandler)
+		public.POST("/auth/login", h.Auth.LoginHandler)
 	}
 }

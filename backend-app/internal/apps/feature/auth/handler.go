@@ -62,11 +62,55 @@ func (h *Handler) RegisterHandler(c *gin.Context) {
 		return
 	}
 
-	c.SetCookie("refresh_token", result.RefreshToken, 604800, "/api/auth", "", false, true)
+	c.SetCookie("refresh_token", result.RefreshToken, 0, "/api/auth", "", false, true)
 
 	c.JSON(http.StatusCreated, dto.ResponseWeb[dto.AuthRegisterRes]{
 		Message: "register user success",
 		Data: dto.AuthRegisterRes{
+			AccessToken: result.AccessToken,
+		},
+	})
+}
+
+func (h *Handler) LoginHandler(c *gin.Context) {
+	log := helper.NewLog(h.Log, c)
+
+	var req dto.AuthLoginReq
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorWeb{Message: "invalid request format"})
+		return
+	}
+
+	if err := h.Validate.Struct(req); err != nil {
+		c.JSON(http.StatusBadRequest, dto.ResponseWeb[map[string]string]{
+			Message: "validation failed",
+			Data:    helper.ValidationMsg(err),
+		})
+		return
+	}
+
+	input := &dto.InputAuthLogin{
+		Ctx:      c.Request.Context(),
+		Email:    req.Email,
+		Password: req.Password,
+	}
+
+	result, err := h.Service.Login(input)
+	if err != nil {
+		if errors.Is(err, errs.ErrInvalidCredentials) {
+			c.JSON(http.StatusUnauthorized, dto.ErrorWeb{Message: err.Error()})
+			return
+		}
+		log.WithField("layer", "auth_handler").Error(err)
+		c.JSON(http.StatusInternalServerError, dto.ErrorWeb{Message: errs.ErrInternal.Error()})
+		return
+	}
+
+	c.SetCookie("refresh_token", result.RefreshToken, 0, "/api/auth", "", false, true)
+
+	c.JSON(http.StatusOK, dto.ResponseWeb[dto.AuthLoginRes]{
+		Message: "login user success",
+		Data: dto.AuthLoginRes{
 			AccessToken: result.AccessToken,
 		},
 	})

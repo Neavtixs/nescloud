@@ -23,7 +23,6 @@ type InputAuthRefresh struct {
 type ResultAuthLogin struct {
 	AccessToken  string
 	RefreshToken string
-	ExpiresIn    int
 }
 
 type ResultAuthMe struct {
