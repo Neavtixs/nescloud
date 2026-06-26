@@ -1,7 +1,9 @@
 package configs
 
 import (
+	"reflect"
 	"regexp"
+	"strings"
 
 	"github.com/go-playground/validator/v10"
 )
@@ -10,6 +12,14 @@ var Validate = validator.New()
 
 func NewValidator() *validator.Validate {
 	v := validator.New()
+
+	v.RegisterTagNameFunc(func(fld reflect.StructField) string {
+		name := strings.SplitN(fld.Tag.Get("json"), ",", 2)[0]
+		if name == "-" || name == "" {
+			return fld.Name
+		}
+		return name
+	})
 
 	v.RegisterValidation("date", func(fl validator.FieldLevel) bool {
 		date := fl.Field().String()
