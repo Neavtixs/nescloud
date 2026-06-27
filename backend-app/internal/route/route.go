@@ -27,5 +27,6 @@ func (h *Handler) SetupRoute(app *gin.Engine) {
 	user := api.Group("", middleware.Authorization())
 	{
 		user.POST("/auth/logout", h.Auth.LogoutHandler)
+		user.GET("/auth/me", h.Auth.MeHandler)
 	}
 }

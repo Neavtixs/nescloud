@@ -42,3 +42,8 @@ type InputAuthLogout struct {
 	Ctx          context.Context
 	RefreshToken string
 }
+
+type InputAuthMe struct {
+	Ctx    context.Context
+	UserID string
+}

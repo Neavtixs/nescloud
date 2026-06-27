@@ -155,3 +155,44 @@ func (h *Handler) LogoutHandler(c *gin.Context) {
 		Message: "logout success",
 	})
 }
+
+func (h *Handler) MeHandler(c *gin.Context) {
+	log := helper.NewLog(h.Log, c)
+	log.Info("me request received")
+
+	userID, _ := c.Get("user_id")
+	userIDStr, ok := userID.(string)
+	if !ok || userIDStr == "" {
+		log.Warn("invalid or missing user_id in context")
+		c.JSON(http.StatusUnauthorized, dto.ErrorWeb{Message: errs.ErrInvalidAccessToken.Error()})
+		return
+	}
+
+	input := &dto.InputAuthMe{
+		Ctx:    c.Request.Context(),
+		UserID: userIDStr,
+	}
+
+	result, err := h.Service.Me(input)
+	if err != nil {
+		if errors.Is(err, errs.ErrDataNotFound) {
+			c.JSON(http.StatusUnauthorized, dto.ErrorWeb{Message: errs.ErrInvalidAccessToken.Error()})
+			return
+		}
+		log.WithField("layer", "auth_handler").Error(err)
+		c.JSON(http.StatusInternalServerError, dto.ErrorWeb{Message: errs.ErrInternal.Error()})
+		return
+	}
+
+	log.WithField("user_id", result.ID).Info("me success")
+
+	c.JSON(http.StatusOK, dto.ResponseWeb[dto.AuthMeRes]{
+		Message: "success",
+		Data: dto.AuthMeRes{
+			ID:        result.ID,
+			Name:      result.Name,
+			Email:     result.Email,
+			CreatedAt: result.CreatedAt,
+		},
+	})
+}

@@ -172,3 +172,31 @@ func (s *Service) Logout(input *dto.InputAuthLogout) error {
 
 	return nil
 }
+
+func (s *Service) Me(input *dto.InputAuthMe) (*dto.ResultAuthMe, error) {
+	s.Log.WithField("user_id", input.UserID).Info("me initiated")
+
+	tx, err := s.DB.BeginTx(input.Ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+
+	user, err := s.UserRepo.FindByID(tx, input.Ctx, input.UserID)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, err
+	}
+
+	s.Log.WithField("user_id", input.UserID).Info("me completed")
+
+	return &dto.ResultAuthMe{
+		ID:        user.ID,
+		Name:      user.Name,
+		Email:     user.Email,
+		CreatedAt: user.CreatedAt.Format(time.RFC3339),
+	}, nil
+}
