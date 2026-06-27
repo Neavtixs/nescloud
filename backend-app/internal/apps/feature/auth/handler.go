@@ -115,3 +115,20 @@ func (h *Handler) LoginHandler(c *gin.Context) {
 		},
 	})
 }
+
+func (h *Handler) LogoutHandler(c *gin.Context) {
+	refreshToken, _ := c.Cookie("refresh_token")
+
+	input := &dto.InputAuthLogout{
+		Ctx:          c.Request.Context(),
+		RefreshToken: refreshToken,
+	}
+
+	_ = h.Service.Logout(input)
+
+	c.SetCookie("refresh_token", "", 0, "/api/auth", "", false, true)
+
+	c.JSON(http.StatusOK, dto.ResponseWeb[any]{
+		Message: "logout success",
+	})
+}

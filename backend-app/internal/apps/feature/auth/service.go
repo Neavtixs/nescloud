@@ -14,6 +14,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
+	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -134,4 +135,15 @@ func (s *Service) Login(input *dto.InputAuthLogin) (*dto.ResultAuthLogin, error)
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
 	}, nil
+}
+
+func (s *Service) Logout(input *dto.InputAuthLogout) error {
+	if input.RefreshToken == "" {
+		return nil
+	}
+
+	refreshTokenKey := fmt.Sprintf("refresh_token:%s", input.RefreshToken)
+	_ = s.Redis.Del(input.Ctx, refreshTokenKey).Err()
+
+	return nil
 }

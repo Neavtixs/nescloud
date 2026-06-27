@@ -37,3 +37,8 @@ type ResultAuthRegister struct {
 	AccessToken  string
 	RefreshToken string
 }
+
+type InputAuthLogout struct {
+	Ctx          context.Context
+	RefreshToken string
+}
