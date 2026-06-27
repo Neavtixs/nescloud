@@ -24,6 +24,7 @@ func (h *Handler) SetupRoute(app *gin.Engine) {
 	{
 		public.POST("/auth/register", h.Auth.RegisterHandler)
 		public.POST("/auth/login", h.Auth.LoginHandler)
+		public.POST("/auth/refresh", h.Auth.RefreshHandler)
 	}
 
 	user := api.Group("", middleware.Authorization(h.Log))

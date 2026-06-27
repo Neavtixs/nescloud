@@ -31,6 +31,10 @@ type AuthMeRes struct {
 	CreatedAt string `json:"created_at"`
 }
 
+type AuthRefreshRes struct {
+	AccessToken string `json:"access_token"`
+}
+
 type ErrorWeb struct {
 	Message string      `json:"message"`
 	Errors  interface{} `json:"errors,omitempty"`

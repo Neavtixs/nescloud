@@ -29,6 +29,7 @@ func NewHandler(service *Service, validate *validator.Validate, log *logrus.Logg
 
 func (h *Handler) RegisterHandler(c *gin.Context) {
 	log := helper.NewLog(h.Log, c)
+	log.Info("register request received")
 
 	var req dto.AuthRegisterReq
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -36,8 +37,6 @@ func (h *Handler) RegisterHandler(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, dto.ErrorWeb{Message: "invalid request format"})
 		return
 	}
-
-	log.WithField("email", req.Email).Info("register request received")
 
 	if err := h.Validate.Struct(req); err != nil {
 		c.JSON(http.StatusBadRequest, dto.ResponseWeb[map[string]string]{
@@ -80,6 +79,7 @@ func (h *Handler) RegisterHandler(c *gin.Context) {
 
 func (h *Handler) LoginHandler(c *gin.Context) {
 	log := helper.NewLog(h.Log, c)
+	log.Info("login request received")
 
 	var req dto.AuthLoginReq
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -87,8 +87,6 @@ func (h *Handler) LoginHandler(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, dto.ErrorWeb{Message: "invalid request format"})
 		return
 	}
-
-	log.WithField("email", req.Email).Info("login request received")
 
 	if err := h.Validate.Struct(req); err != nil {
 		c.JSON(http.StatusBadRequest, dto.ResponseWeb[map[string]string]{
@@ -128,12 +126,53 @@ func (h *Handler) LoginHandler(c *gin.Context) {
 	})
 }
 
+func (h *Handler) RefreshHandler(c *gin.Context) {
+	log := helper.NewLog(h.Log, c)
+	log.Info("refresh request received")
+
+	refreshToken, err := c.Cookie("refresh_token")
+	if err != nil || refreshToken == "" {
+		log.Warn("refresh_token cookie not found")
+		c.JSON(http.StatusUnauthorized, dto.ErrorWeb{Message: errs.ErrInvalidAccessToken.Error()})
+		return
+	}
+	log.Info("cookie: " + refreshToken)
+
+	input := &dto.InputAuthRefresh{
+		Ctx:          c.Request.Context(),
+		RefreshToken: refreshToken,
+	}
+
+	log.Info("refresh service call")
+	result, err := h.Service.Refresh(input)
+	if err != nil {
+		if errors.Is(err, errs.ErrInvalidAccessToken) {
+			log.Warn("invalid refresh token")
+			c.JSON(http.StatusUnauthorized, dto.ErrorWeb{Message: errs.ErrInvalidAccessToken.Error()})
+			return
+		}
+		log.WithField("layer", "auth_handler").Error(err)
+		c.JSON(http.StatusInternalServerError, dto.ErrorWeb{Message: errs.ErrInternal.Error()})
+		return
+	}
+
+	log.Info("refresh success")
+
+	c.SetCookie("refresh_token", result.RefreshToken, 0, "/api/auth", "", false, true)
+
+	c.JSON(http.StatusOK, dto.ResponseWeb[dto.AuthRefreshRes]{
+		Message: "token refreshed",
+		Data: dto.AuthRefreshRes{
+			AccessToken: result.AccessToken,
+		},
+	})
+}
+
 func (h *Handler) LogoutHandler(c *gin.Context) {
 	log := helper.NewLog(h.Log, c)
 	log.Info("logout request received")
 
 	refreshToken, _ := c.Cookie("refresh_token")
-
 	if refreshToken == "" {
 		log.Warn("no refresh_token cookie found")
 	} else {
@@ -176,6 +215,7 @@ func (h *Handler) MeHandler(c *gin.Context) {
 	result, err := h.Service.Me(input)
 	if err != nil {
 		if errors.Is(err, errs.ErrDataNotFound) {
+			log.Warn("user not found")
 			c.JSON(http.StatusUnauthorized, dto.ErrorWeb{Message: errs.ErrInvalidAccessToken.Error()})
 			return
 		}

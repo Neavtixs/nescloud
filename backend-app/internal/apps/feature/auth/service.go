@@ -157,6 +157,40 @@ func (s *Service) Logout(input *dto.InputAuthLogout) error {
 	return nil
 }
 
+func (s *Service) Refresh(input *dto.InputAuthRefresh) (*dto.ResultAuthRefresh, error) {
+	refreshTokenKey := fmt.Sprintf("refresh_token:%s", input.RefreshToken)
+
+	userID, err := s.Redis.Get(input.Ctx, refreshTokenKey).Result()
+	if err != nil {
+		if errors.Is(err, redis.Nil) {
+			return nil, errs.ErrInvalidAccessToken
+		}
+		return nil, err
+	}
+
+	accessToken, err := helper.GenerateAccessToken(userID)
+	if err != nil {
+		return nil, err
+	}
+
+	s.Redis.Del(input.Ctx, refreshTokenKey)
+
+	newRefreshToken := uuid.NewString()
+	newRefreshTokenKey := fmt.Sprintf("refresh_token:%s", newRefreshToken)
+	refreshTTL := 7 * 24 * time.Hour
+	if d, err := strconv.Atoi(os.Getenv("REFRESH_EXP_DAYS")); err == nil && d > 0 {
+		refreshTTL = time.Duration(d) * 24 * time.Hour
+	}
+	if err := s.Redis.Set(input.Ctx, newRefreshTokenKey, userID, refreshTTL).Err(); err != nil {
+		return nil, err
+	}
+
+	return &dto.ResultAuthRefresh{
+		AccessToken:  accessToken,
+		RefreshToken: newRefreshToken,
+	}, nil
+}
+
 func (s *Service) Me(input *dto.InputAuthMe) (*dto.ResultAuthMe, error) {
 	tx, err := s.DB.BeginTx(input.Ctx, nil)
 	if err != nil {

@@ -1,9 +1,14 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useAtom } from "jotai";
+import { userAtom } from "@/lib/atoms/auth-atoms";
 
 export default function HomePage() {
   const router = useRouter();
+  const [user, setUser] = useAtom(userAtom);
+  const [isReloading, setIsReloading] = useState(false);
 
   async function handleLogout() {
     await fetch("/api/auth/logout", {
@@ -12,10 +17,41 @@ export default function HomePage() {
     router.push("/login");
   }
 
+  async function handleReload() {
+    setIsReloading(true);
+    try {
+      const res = await fetch("/api/auth/me");
+      if (res.ok) {
+        const json = await res.json();
+        setUser(json.data);
+      }
+    } finally {
+      setIsReloading(false);
+    }
+  }
+
   return (
     <div>
       <h1>ini home page</h1>
-      <button onClick={handleLogout}>Logout</button>
+
+      <div>
+        <button onClick={handleReload} disabled={isReloading}>
+          {isReloading ? "Memuat..." : "Reload"}
+        </button>
+      </div>
+      <div>
+        {user && (
+          <div>
+            <p>Nama: {user.name}</p>
+            <p>Email: {user.email}</p>
+            <p>
+              Bergabung: {new Date(user.created_at).toLocaleDateString("id-ID")}
+            </p>
+          </div>
+        )}
+
+        <button onClick={handleLogout}>Logout</button>
+      </div>
     </div>
   );
 }

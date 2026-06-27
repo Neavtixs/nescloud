@@ -47,3 +47,8 @@ type InputAuthMe struct {
 	Ctx    context.Context
 	UserID string
 }
+
+type ResultAuthRefresh struct {
+	AccessToken  string
+	RefreshToken string
+}
