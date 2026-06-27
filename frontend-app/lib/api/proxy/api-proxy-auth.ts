@@ -56,7 +56,7 @@ export async function apiProxyAuth(
       cookieStore.set({
         name: "access_token",
         value: "",
-        maxAge: 0,
+        maxAge: -1,
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         sameSite: "lax",
@@ -66,7 +66,7 @@ export async function apiProxyAuth(
       cookieStore.set({
         name: "refresh_token",
         value: "",
-        maxAge: 0,
+        maxAge: -1,
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         sameSite: "lax",
@@ -93,6 +93,7 @@ export async function apiProxyAuth(
         cookieStore.set({
           name: "refresh_token",
           value: refreshToken,
+          maxAge: 604800,
           httpOnly: true,
           secure: process.env.NODE_ENV === "production",
           sameSite: "lax",
