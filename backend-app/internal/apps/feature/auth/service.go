@@ -23,18 +23,22 @@ type Service struct {
 	Redis     *redis.Client
 	UserRepo  *repository.UserRepo
 	QuotaRepo *repository.QuotaRepo
+	Log       *logrus.Logger
 }
 
-func NewService(db *sql.DB, rdb *redis.Client, userRepo *repository.UserRepo, quotaRepo *repository.QuotaRepo) *Service {
+func NewService(db *sql.DB, rdb *redis.Client, userRepo *repository.UserRepo, quotaRepo *repository.QuotaRepo, log *logrus.Logger) *Service {
 	return &Service{
 		DB:        db,
 		Redis:     rdb,
 		UserRepo:  userRepo,
 		QuotaRepo: quotaRepo,
+		Log:       log,
 	}
 }
 
 func (s *Service) Register(input *dto.InputAuthRegister) (*dto.ResultAuthRegister, error) {
+	s.Log.WithField("email", input.Email).Info("register initiated")
+
 	tx, err := s.DB.BeginTx(input.Ctx, nil)
 	if err != nil {
 		return nil, err
@@ -61,6 +65,7 @@ func (s *Service) Register(input *dto.InputAuthRegister) (*dto.ResultAuthRegiste
 	if err := s.UserRepo.Insert(tx, input.Ctx, user); err != nil {
 		return nil, err
 	}
+	s.Log.WithField("user_id", userID).Info("user inserted into db")
 
 	quota := &entity.Quota{
 		ID:          uuid.NewString(),
@@ -74,10 +79,12 @@ func (s *Service) Register(input *dto.InputAuthRegister) (*dto.ResultAuthRegiste
 	if err := s.QuotaRepo.Insert(tx, input.Ctx, quota); err != nil {
 		return nil, err
 	}
+	s.Log.WithField("user_id", userID).Info("quota created for user")
 
 	if err := tx.Commit(); err != nil {
 		return nil, err
 	}
+	s.Log.WithField("user_id", userID).Info("transaction committed")
 
 	accessToken, err := helper.GenerateAccessToken(userID)
 	if err != nil {
@@ -89,6 +96,9 @@ func (s *Service) Register(input *dto.InputAuthRegister) (*dto.ResultAuthRegiste
 	if err := s.Redis.Set(input.Ctx, refreshTokenKey, userID, 7*24*time.Hour).Err(); err != nil {
 		return nil, err
 	}
+	s.Log.WithField("user_id", userID).Info("refresh token saved to redis")
+
+	s.Log.WithField("user_id", userID).Info("register completed")
 
 	return &dto.ResultAuthRegister{
 		ID:           userID,
@@ -98,6 +108,8 @@ func (s *Service) Register(input *dto.InputAuthRegister) (*dto.ResultAuthRegiste
 }
 
 func (s *Service) Login(input *dto.InputAuthLogin) (*dto.ResultAuthLogin, error) {
+	s.Log.WithField("email", input.Email).Info("login initiated")
+
 	tx, err := s.DB.BeginTx(input.Ctx, nil)
 	if err != nil {
 		return nil, err
@@ -111,14 +123,17 @@ func (s *Service) Login(input *dto.InputAuthLogin) (*dto.ResultAuthLogin, error)
 		}
 		return nil, err
 	}
+	s.Log.WithField("user_id", user.ID).Info("user found")
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(input.Password)); err != nil {
 		return nil, errs.ErrInvalidCredentials
 	}
+	s.Log.WithField("user_id", user.ID).Info("password verified")
 
 	if err := tx.Commit(); err != nil {
 		return nil, err
 	}
+	s.Log.WithField("user_id", user.ID).Info("transaction committed")
 
 	accessToken, err := helper.GenerateAccessToken(user.ID)
 	if err != nil {
@@ -130,6 +145,9 @@ func (s *Service) Login(input *dto.InputAuthLogin) (*dto.ResultAuthLogin, error)
 	if err := s.Redis.Set(input.Ctx, refreshTokenKey, user.ID, 7*24*time.Hour).Err(); err != nil {
 		return nil, err
 	}
+	s.Log.WithField("user_id", user.ID).Info("refresh token saved to redis")
+
+	s.Log.WithField("user_id", user.ID).Info("login completed")
 
 	return &dto.ResultAuthLogin{
 		AccessToken:  accessToken,
@@ -138,12 +156,19 @@ func (s *Service) Login(input *dto.InputAuthLogin) (*dto.ResultAuthLogin, error)
 }
 
 func (s *Service) Logout(input *dto.InputAuthLogout) error {
+	s.Log.Info("logout initiated")
+
 	if input.RefreshToken == "" {
+		s.Log.Warn("no refresh token provided for logout")
 		return nil
 	}
 
 	refreshTokenKey := fmt.Sprintf("refresh_token:%s", input.RefreshToken)
-	_ = s.Redis.Del(input.Ctx, refreshTokenKey).Err()
+	if err := s.Redis.Del(input.Ctx, refreshTokenKey).Err(); err != nil {
+		s.Log.WithError(err).Warn("failed to delete refresh token from redis")
+	} else {
+		s.Log.Info("refresh token deleted from redis")
+	}
 
 	return nil
 }

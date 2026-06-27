@@ -32,9 +32,12 @@ func (h *Handler) RegisterHandler(c *gin.Context) {
 
 	var req dto.AuthRegisterReq
 	if err := c.ShouldBindJSON(&req); err != nil {
+		log.WithField("layer", "auth_handler").Warn("invalid request format")
 		c.JSON(http.StatusBadRequest, dto.ErrorWeb{Message: "invalid request format"})
 		return
 	}
+
+	log.WithField("email", req.Email).Info("register request received")
 
 	if err := h.Validate.Struct(req); err != nil {
 		c.JSON(http.StatusBadRequest, dto.ResponseWeb[map[string]string]{
@@ -54,6 +57,7 @@ func (h *Handler) RegisterHandler(c *gin.Context) {
 	result, err := h.Service.Register(input)
 	if err != nil {
 		if errors.Is(err, errs.ErrEmailAlreadyExists) {
+			log.WithField("email", req.Email).Warn("email already exists")
 			c.JSON(http.StatusConflict, dto.ErrorWeb{Message: err.Error()})
 			return
 		}
@@ -61,6 +65,8 @@ func (h *Handler) RegisterHandler(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, dto.ErrorWeb{Message: errs.ErrInternal.Error()})
 		return
 	}
+
+	log.WithField("user_id", result.ID).Info("register success")
 
 	c.SetCookie("refresh_token", result.RefreshToken, 0, "/api/auth", "", false, true)
 
@@ -77,9 +83,12 @@ func (h *Handler) LoginHandler(c *gin.Context) {
 
 	var req dto.AuthLoginReq
 	if err := c.ShouldBindJSON(&req); err != nil {
+		log.WithField("layer", "auth_handler").Warn("invalid request format")
 		c.JSON(http.StatusBadRequest, dto.ErrorWeb{Message: "invalid request format"})
 		return
 	}
+
+	log.WithField("email", req.Email).Info("login request received")
 
 	if err := h.Validate.Struct(req); err != nil {
 		c.JSON(http.StatusBadRequest, dto.ResponseWeb[map[string]string]{
@@ -98,6 +107,7 @@ func (h *Handler) LoginHandler(c *gin.Context) {
 	result, err := h.Service.Login(input)
 	if err != nil {
 		if errors.Is(err, errs.ErrInvalidCredentials) {
+			log.WithField("email", req.Email).Warn("invalid login credentials")
 			c.JSON(http.StatusUnauthorized, dto.ErrorWeb{Message: err.Error()})
 			return
 		}
@@ -105,6 +115,8 @@ func (h *Handler) LoginHandler(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, dto.ErrorWeb{Message: errs.ErrInternal.Error()})
 		return
 	}
+
+	log.Info("login success")
 
 	c.SetCookie("refresh_token", result.RefreshToken, 0, "/api/auth", "", false, true)
 
@@ -117,7 +129,16 @@ func (h *Handler) LoginHandler(c *gin.Context) {
 }
 
 func (h *Handler) LogoutHandler(c *gin.Context) {
+	log := helper.NewLog(h.Log, c)
+	log.Info("logout request received")
+
 	refreshToken, _ := c.Cookie("refresh_token")
+
+	if refreshToken == "" {
+		log.Warn("no refresh_token cookie found")
+	} else {
+		log.Info("refresh_token cookie found, proceeding with logout")
+	}
 
 	input := &dto.InputAuthLogout{
 		Ctx:          c.Request.Context(),
@@ -127,6 +148,8 @@ func (h *Handler) LogoutHandler(c *gin.Context) {
 	_ = h.Service.Logout(input)
 
 	c.SetCookie("refresh_token", "", 0, "/api/auth", "", false, true)
+
+	log.Info("logout success")
 
 	c.JSON(http.StatusOK, dto.ResponseWeb[any]{
 		Message: "logout success",

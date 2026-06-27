@@ -29,7 +29,7 @@ func InitDependencies(db *sql.DB, rdb *redis.Client, validate *validator.Validat
 	s3cfg := configs.NewS3()
 	store := storage.NewStorage(s3cfg)
 
-	authService := auth.NewService(db, rdb, userRepo, quotaRepo)
+	authService := auth.NewService(db, rdb, userRepo, quotaRepo, log)
 	authHandler := auth.NewHandler(authService, validate, log)
 
 	folderService := folder.NewService(db, folderRepo)
