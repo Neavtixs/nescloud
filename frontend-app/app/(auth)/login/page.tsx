@@ -1,5 +1,6 @@
 "use client";
 
+import { ApiError, authApi } from "@/lib/api/client/api-call";
 import { useRouter } from "next/navigation";
 import { SubmitEvent, useState } from "react";
 
@@ -16,28 +17,17 @@ export default function LoginPage() {
     setApiError("");
 
     try {
-      const res = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.trim(), password }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.message ?? "Terjadi kesalahan");
-      }
-
+      await authApi.login({ email: email.trim(), password: password });
       router.replace("/home");
     } catch (err) {
-      if (err instanceof Error) {
-        setApiError(err.message);
+      if (err instanceof ApiError) {
+        setApiError(err.message); // pesan dari backend, misal "invalid email or password"
+        console.log(err.status); // HTTP status, misal 401
       } else {
-        setApiError("Terjadi kesalahan, coba lagi");
+        setApiError("Terjadi kesalahan, coba lagi"); // network error
       }
-    } finally {
-      setIsSubmitting(false);
     }
+    setIsSubmitting(false);
   }
 
   return (
