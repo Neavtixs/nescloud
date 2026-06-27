@@ -14,25 +14,6 @@ export default function MainLayout({
   const [, setUser] = useAtom(userAtom);
   const [isLoading, setIsLoading] = useAtom(isAuthLoadingAtom);
 
-  /*
-  useEffect(() => {
-
-    async function validate() {
-      try {
-        const res = await fetch("/api/auth/me");
-        if (!res.ok) throw new Error("unauthorized");
-        const json = await res.json();
-        setUser(json.data);
-      } catch {
-        router.push("/login");
-      } finally {
-        setIsLoading(false);
-      }
-    }
-    return () => validate();
-  }, []);
-	*/
-
   useEffect(() => {
     const controller = new AbortController();
 
