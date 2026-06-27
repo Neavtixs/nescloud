@@ -1,7 +1,9 @@
 package helper
 
 import (
+	"fmt"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -11,12 +13,18 @@ import (
 func GenerateAccessToken(userID string) (string, error) {
 	secret := os.Getenv("JWT_SECRET")
 	if strings.TrimSpace(secret) == "" {
-		secret = "default-secret"
+		return "", fmt.Errorf("JWT_SECRET not set")
+	}
+
+	expMinutesStr := os.Getenv("JWT_EXPIRE_MINUTES")
+	expMinutes, err := strconv.Atoi(expMinutesStr)
+	if err != nil || expMinutes <= 0 {
+		return "", fmt.Errorf("JWT_EXPIRE_MINUTES not set or invalid")
 	}
 
 	claims := jwt.MapClaims{
 		"user_id": userID,
-		"exp":     time.Now().Add(15 * time.Minute).Unix(),
+		"exp":     time.Now().Add(time.Duration(expMinutes) * time.Minute).Unix(),
 		"iat":     time.Now().Unix(),
 	}
 
@@ -27,7 +35,7 @@ func GenerateAccessToken(userID string) (string, error) {
 func ValidateAccessToken(tokenString string) (string, error) {
 	secret := os.Getenv("JWT_SECRET")
 	if strings.TrimSpace(secret) == "" {
-		secret = "default-secret"
+		return "", fmt.Errorf("JWT_SECRET not set")
 	}
 
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
