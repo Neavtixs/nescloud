@@ -1,42 +1,48 @@
-"use client"
+"use client";
 
-import { useState } from "react"
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 export default function RegisterPage() {
-  const [name, setName] = useState("")
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [confirmPassword, setConfirmPassword] = useState("")
-  const [apiError, setApiError] = useState("")
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [apiError, setApiError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const router = useRouter();
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    setIsSubmitting(true)
-    setApiError("")
+  async function handleSubmit(e: React.SubmitEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setApiError("");
 
     try {
       const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: name.trim(), email: email.trim(), password }),
-      })
+        body: JSON.stringify({
+          name: name.trim(),
+          email: email.trim(),
+          password,
+        }),
+      });
 
-      const data = await res.json()
+      const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.message ?? "Terjadi kesalahan")
+        throw new Error(data.message ?? "Terjadi kesalahan");
       }
 
-      alert("Registrasi berhasil")
+      router.replace("/home");
     } catch (err) {
       if (err instanceof Error) {
-        setApiError(err.message)
+        setApiError(err.message);
       } else {
-        setApiError("Terjadi kesalahan, coba lagi")
+        setApiError("Terjadi kesalahan, coba lagi");
       }
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false);
     }
   }
 
@@ -46,9 +52,7 @@ export default function RegisterPage() {
         <h1 className="text-2xl font-semibold tracking-tight text-gray-900">
           Daftar
         </h1>
-        <p className="mt-1 text-sm text-gray-500">
-          Buat akun baru Anda
-        </p>
+        <p className="mt-1 text-sm text-gray-500">Buat akun baru Anda</p>
       </div>
 
       {apiError && (
@@ -62,6 +66,7 @@ export default function RegisterPage() {
           Nama
         </label>
         <input
+          required
           id="name"
           type="text"
           value={name}
@@ -76,6 +81,7 @@ export default function RegisterPage() {
           Email
         </label>
         <input
+          required
           id="email"
           type="email"
           value={email}
@@ -86,13 +92,11 @@ export default function RegisterPage() {
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <label
-          htmlFor="password"
-          className="text-sm font-medium text-gray-900"
-        >
+        <label htmlFor="password" className="text-sm font-medium text-gray-900">
           Password
         </label>
         <input
+          required
           id="password"
           type="password"
           value={password}
@@ -110,6 +114,7 @@ export default function RegisterPage() {
           Konfirmasi Password
         </label>
         <input
+          required
           id="confirmPassword"
           type="password"
           value={confirmPassword}
@@ -129,10 +134,13 @@ export default function RegisterPage() {
 
       <p className="text-center text-sm text-gray-500">
         Sudah punya akun?{" "}
-        <a href="/login" className="font-medium text-blue-600 hover:text-blue-500">
+        <a
+          href="/login"
+          className="font-medium text-blue-600 hover:text-blue-500"
+        >
           Masuk
         </a>
       </p>
     </form>
-  )
+  );
 }

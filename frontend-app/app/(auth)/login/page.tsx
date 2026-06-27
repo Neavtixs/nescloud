@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { SubmitEvent, useState } from "react";
 
 export default function LoginPage() {
@@ -7,6 +8,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [apiError, setApiError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const router = useRouter();
 
   async function handleSubmit(e: SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -26,7 +28,7 @@ export default function LoginPage() {
         throw new Error(data.message ?? "Terjadi kesalahan");
       }
 
-      alert("Login berhasil");
+      router.replace("/home");
     } catch (err) {
       if (err instanceof Error) {
         setApiError(err.message);
@@ -58,6 +60,7 @@ export default function LoginPage() {
           Email
         </label>
         <input
+          required
           id="email"
           type="email"
           value={email}
@@ -72,6 +75,7 @@ export default function LoginPage() {
           Password
         </label>
         <input
+          required
           id="password"
           type="password"
           value={password}

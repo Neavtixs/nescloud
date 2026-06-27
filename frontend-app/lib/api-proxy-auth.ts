@@ -24,16 +24,20 @@ export async function apiProxyAuth(
 
   const body = forwardBody ? await request.text() : undefined;
 
+  const accessToken = request.cookies.get("access_token")?.value;
+
   let resp: Response;
   let data: any;
 
   try {
     resp = await fetch(`${API_BASE}${path}`, {
-    method,
-    headers: {
-      "Content-Type": request.headers.get("Content-Type") ?? "application/json",
-    },
-    body,
+      method,
+      headers: {
+        "Content-Type":
+          request.headers.get("Content-Type") ?? "application/json",
+        ...(accessToken && { Authorization: `Bearer ${accessToken}` }),
+      },
+      body,
     });
 
     data = await resp.json();
