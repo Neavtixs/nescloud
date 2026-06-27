@@ -24,16 +24,26 @@ export async function apiProxyAuth(
 
   const body = forwardBody ? await request.text() : undefined;
 
-  const resp = await fetch(`${API_BASE}${path}`, {
+  let resp: Response;
+  let data: any;
+
+  try {
+    resp = await fetch(`${API_BASE}${path}`, {
     method,
     headers: {
       "Content-Type": request.headers.get("Content-Type") ?? "application/json",
     },
     body,
-  });
+    });
 
-  const data = await resp.json();
-  console.log(data);
+    data = await resp.json();
+    console.log(data);
+  } catch {
+    return NextResponse.json(
+      { message: "Service unavailable" },
+      { status: 502 },
+    );
+  }
 
   if (setCookies && resp.ok) {
     const cookieStore = await cookies();
@@ -85,6 +95,10 @@ export async function apiProxyAuth(
           path: "/",
         });
       }
+    }
+
+    if (data.data?.access_token) {
+      delete data.data.access_token;
     }
   }
 

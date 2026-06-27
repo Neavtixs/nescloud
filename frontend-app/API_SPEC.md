@@ -143,8 +143,7 @@ Response `200 OK`
 {
   "message": "login user success",
   "data": {
-    "access_token": "<jwt>",
-    "expires_in": 900
+    "access_token": "<jwt>"
   }
 }
 ```
@@ -171,8 +170,7 @@ Response `200 OK`
 {
   "message": "token refreshed",
   "data": {
-    "access_token": "<jwt>",
-    "expires_in": 900
+    "access_token": "<jwt>"
   }
 }
 ```
@@ -244,7 +242,7 @@ Request
 ```json
 {
   "parent_folder_id": "",
-  "name":[118;1:3u "Documents"
+  "name": "Documents"
 }
 ```
 
@@ -440,7 +438,7 @@ Response `200 OK`
 
 ```json
 {
-  "message": "upload completed",
+  "[118;1:3umessage": "upload completed",
   "data": {
     "file_id": "uuid"
   }

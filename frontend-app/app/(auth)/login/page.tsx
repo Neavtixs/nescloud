@@ -1,40 +1,40 @@
-"use client"
+"use client";
 
-import { useState } from "react"
+import { SubmitEvent, useState } from "react";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [apiError, setApiError] = useState("")
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [apiError, setApiError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    setIsSubmitting(true)
-    setApiError("")
+  async function handleSubmit(e: SubmitEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setApiError("");
 
     try {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: email.trim(), password }),
-      })
+      });
 
-      const data = await res.json()
+      const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.message ?? "Terjadi kesalahan")
+        throw new Error(data.message ?? "Terjadi kesalahan");
       }
 
-      alert("Login berhasil")
+      alert("Login berhasil");
     } catch (err) {
       if (err instanceof Error) {
-        setApiError(err.message)
+        setApiError(err.message);
       } else {
-        setApiError("Terjadi kesalahan, coba lagi")
+        setApiError("Terjadi kesalahan, coba lagi");
       }
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false);
     }
   }
 
@@ -44,9 +44,7 @@ export default function LoginPage() {
         <h1 className="text-2xl font-semibold tracking-tight text-gray-900">
           Masuk
         </h1>
-        <p className="mt-1 text-sm text-gray-500">
-          Silakan masuk ke akun Anda
-        </p>
+        <p className="mt-1 text-sm text-gray-500">Silakan masuk ke akun Anda</p>
       </div>
 
       {apiError && (
@@ -70,10 +68,7 @@ export default function LoginPage() {
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <label
-          htmlFor="password"
-          className="text-sm font-medium text-gray-900"
-        >
+        <label htmlFor="password" className="text-sm font-medium text-gray-900">
           Password
         </label>
         <input
@@ -96,10 +91,13 @@ export default function LoginPage() {
 
       <p className="text-center text-sm text-gray-500">
         Belum punya akun?{" "}
-        <a href="/register" className="font-medium text-blue-600 hover:text-blue-500">
+        <a
+          href="/register"
+          className="font-medium text-blue-600 hover:text-blue-500"
+        >
           Daftar
         </a>
       </p>
     </form>
-  )
+  );
 }

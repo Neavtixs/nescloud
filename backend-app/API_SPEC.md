@@ -143,8 +143,7 @@ Response `200 OK`
 {
   "message": "login user success",
   "data": {
-    "access_token": "<jwt>",
-    "expires_in": 900
+    "access_token": "<jwt>"
   }
 }
 ```
@@ -171,8 +170,7 @@ Response `200 OK`
 {
   "message": "token refreshed",
   "data": {
-    "access_token": "<jwt>",
-    "expires_in": 900
+    "access_token": "<jwt>"
   }
 }
 ```
