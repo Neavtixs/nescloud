@@ -25,6 +25,9 @@ export default function HomePage() {
         const json = await res.json();
         setUser(json.data);
       }
+      if (res.status === 401) {
+        router.replace("/login");
+      }
     } finally {
       setIsReloading(false);
     }

@@ -23,24 +23,28 @@ export default function MainLayout({
           signal: controller.signal,
         });
 
-        if (!res.ok) throw new Error();
+        if (!res.ok) {
+          router.replace("/login");
+          return;
+        }
 
-        const json = await res.json();
-
-        setUser(json.data);
+        const { data } = await res.json();
+        setUser(data);
       } catch (err) {
-        if ((err as Error).name === "AbortError") return;
-
-        router.replace("/login");
+        if ((err as Error).name !== "AbortError") {
+          router.replace("/login");
+        }
       } finally {
-        setIsLoading(false);
+        if (!controller.signal.aborted) {
+          setIsLoading(false);
+        }
       }
     }
 
     validate();
 
     return () => controller.abort();
-  }, []);
+  }, [router, setUser, setIsLoading]);
 
   if (isLoading) return <div>Loading...</div>;
 
