@@ -18,7 +18,7 @@ export default function LoginPage() {
 
     try {
       await authApi.login({ email: email.trim(), password: password });
-      router.replace("/home");
+      // router.replace("/home");
     } catch (err) {
       if (err instanceof ApiError) {
         setApiError(err.message); // pesan dari backend, misal "invalid email or password"
