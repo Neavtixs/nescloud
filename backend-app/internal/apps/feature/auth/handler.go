@@ -67,7 +67,7 @@ func (h *Handler) RegisterHandler(c *gin.Context) {
 
 	log.WithField("user_id", result.ID).Info("register success")
 
-	c.SetCookie("refresh_token", result.RefreshToken, 0, "/api/auth", "", false, true)
+	c.SetCookie("refresh_token", result.RefreshToken, result.RefreshExpiresIn, "/", "", false, true)
 
 	c.JSON(http.StatusCreated, dto.ResponseWeb[dto.AuthRegisterRes]{
 		Message: "register user success",
@@ -116,7 +116,7 @@ func (h *Handler) LoginHandler(c *gin.Context) {
 
 	log.Info("login success")
 
-	c.SetCookie("refresh_token", result.RefreshToken, 0, "/api/auth", "", false, true)
+	c.SetCookie("refresh_token", result.RefreshToken, result.RefreshExpiresIn, "/", "", false, true)
 
 	c.JSON(http.StatusOK, dto.ResponseWeb[dto.AuthLoginRes]{
 		Message: "login user success",
@@ -158,7 +158,7 @@ func (h *Handler) RefreshHandler(c *gin.Context) {
 
 	log.Info("refresh success")
 
-	c.SetCookie("refresh_token", result.RefreshToken, 0, "/api/auth", "", false, true)
+	c.SetCookie("refresh_token", result.RefreshToken, result.RefreshExpiresIn, "/", "", false, true)
 
 	c.JSON(http.StatusOK, dto.ResponseWeb[dto.AuthRefreshRes]{
 		Message: "token refreshed",
@@ -186,7 +186,7 @@ func (h *Handler) LogoutHandler(c *gin.Context) {
 
 	_ = h.Service.Logout(input)
 
-	c.SetCookie("refresh_token", "", 0, "/api/auth", "", false, true)
+	c.SetCookie("refresh_token", "", 0, "/", "", false, true)
 
 	log.Info("logout success")
 

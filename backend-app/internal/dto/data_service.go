@@ -21,8 +21,9 @@ type InputAuthRefresh struct {
 }
 
 type ResultAuthLogin struct {
-	AccessToken  string
-	RefreshToken string
+	AccessToken      string
+	RefreshToken     string
+	RefreshExpiresIn int
 }
 
 type ResultAuthMe struct {
@@ -33,9 +34,10 @@ type ResultAuthMe struct {
 }
 
 type ResultAuthRegister struct {
-	ID           string
-	AccessToken  string
-	RefreshToken string
+	ID               string
+	AccessToken      string
+	RefreshToken     string
+	RefreshExpiresIn int
 }
 
 type InputAuthLogout struct {
@@ -49,6 +51,7 @@ type InputAuthMe struct {
 }
 
 type ResultAuthRefresh struct {
-	AccessToken  string
-	RefreshToken string
+	AccessToken      string
+	RefreshToken     string
+	RefreshExpiresIn int
 }

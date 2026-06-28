@@ -5,6 +5,8 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"os"
+	"strconv"
 	"time"
 
 	"nescloud/backend-app/internal/apps/domain/entity"
@@ -34,19 +36,17 @@ func NewService(db *sql.DB, rdb *redis.Client, userRepo *repository.UserRepo, qu
 	}
 }
 
-func (s *Service) setRefreshToken(ctx context.Context, userID string) (string, error) {
+func (s *Service) setRefreshToken(ctx context.Context, userID string) (string, int, error) {
 	refreshToken := uuid.NewString()
 	refreshTokenKey := fmt.Sprintf("refresh_token:%s", refreshToken)
-	/*
-		refreshTTL := 7 * 24 * time.Hour
-		if d, err := strconv.Atoi(os.Getenv("REFRESH_EXP_DAYS")); err == nil && d > 0 {
-			refreshTTL = time.Duration(d) * 24 * time.Hour
-		}
-	*/
-	if err := s.Redis.Set(ctx, refreshTokenKey, userID, 90*time.Second).Err(); err != nil {
-		return "", err
+	refreshTTL := 90 * time.Second
+	if d, err := strconv.Atoi(os.Getenv("REFRESH_EXP_DAYS")); err == nil && d > 0 {
+		refreshTTL = time.Duration(d) * 24 * time.Hour
 	}
-	return refreshToken, nil
+	if err := s.Redis.Set(ctx, refreshTokenKey, userID, refreshTTL).Err(); err != nil {
+		return "", 0, err
+	}
+	return refreshToken, int(refreshTTL.Seconds()), nil
 }
 
 func (s *Service) Register(input *dto.InputAuthRegister) (*dto.ResultAuthRegister, error) {
@@ -99,15 +99,16 @@ func (s *Service) Register(input *dto.InputAuthRegister) (*dto.ResultAuthRegiste
 		return nil, err
 	}
 
-	refreshToken, err := s.setRefreshToken(input.Ctx, userID)
+	refreshToken, expiresIn, err := s.setRefreshToken(input.Ctx, userID)
 	if err != nil {
 		return nil, err
 	}
 
 	return &dto.ResultAuthRegister{
-		ID:           userID,
-		AccessToken:  accessToken,
-		RefreshToken: refreshToken,
+		ID:               userID,
+		AccessToken:      accessToken,
+		RefreshToken:     refreshToken,
+		RefreshExpiresIn: expiresIn,
 	}, nil
 }
 
@@ -139,14 +140,15 @@ func (s *Service) Login(input *dto.InputAuthLogin) (*dto.ResultAuthLogin, error)
 		return nil, err
 	}
 
-	refreshToken, err := s.setRefreshToken(input.Ctx, user.ID)
+	refreshToken, expiresIn, err := s.setRefreshToken(input.Ctx, user.ID)
 	if err != nil {
 		return nil, err
 	}
 
 	return &dto.ResultAuthLogin{
-		AccessToken:  accessToken,
-		RefreshToken: refreshToken,
+		AccessToken:      accessToken,
+		RefreshToken:     refreshToken,
+		RefreshExpiresIn: expiresIn,
 	}, nil
 }
 
@@ -179,14 +181,15 @@ func (s *Service) Refresh(input *dto.InputAuthRefresh) (*dto.ResultAuthRefresh, 
 
 	s.Redis.Del(input.Ctx, refreshTokenKey)
 
-	newRefreshToken, err := s.setRefreshToken(input.Ctx, userID)
+	newRefreshToken, expiresIn, err := s.setRefreshToken(input.Ctx, userID)
 	if err != nil {
 		return nil, err
 	}
 
 	return &dto.ResultAuthRefresh{
-		AccessToken:  accessToken,
-		RefreshToken: newRefreshToken,
+		AccessToken:      accessToken,
+		RefreshToken:     newRefreshToken,
+		RefreshExpiresIn: expiresIn,
 	}, nil
 }
 
