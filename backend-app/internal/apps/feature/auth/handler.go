@@ -116,7 +116,7 @@ func (h *Handler) LoginHandler(c *gin.Context) {
 
 	log.Info("login success")
 
-	c.SetCookie("refresh_token", result.RefreshToken, result.RefreshExpiresIn, "/", "", false, true)
+	c.SetCookie("refresh_token", result.RefreshToken, result.RefreshExpiresIn*2, "/", "", false, true)
 
 	c.JSON(http.StatusOK, dto.ResponseWeb[dto.AuthLoginRes]{
 		Message: "login user success",
@@ -148,6 +148,7 @@ func (h *Handler) RefreshHandler(c *gin.Context) {
 	if err != nil {
 		if errors.Is(err, errs.ErrInvalidAccessToken) {
 			log.Warn("invalid refresh token")
+			c.SetCookie("refresh_token", "", -1, "/", "", false, true)
 			c.JSON(http.StatusUnauthorized, dto.ErrorWeb{Message: errs.ErrInvalidAccessToken.Error()})
 			return
 		}
@@ -158,7 +159,7 @@ func (h *Handler) RefreshHandler(c *gin.Context) {
 
 	log.Info("refresh success")
 
-	c.SetCookie("refresh_token", result.RefreshToken, result.RefreshExpiresIn, "/", "", false, true)
+	c.SetCookie("refresh_token", result.RefreshToken, result.RefreshExpiresIn*2, "/", "", false, true)
 
 	c.JSON(http.StatusOK, dto.ResponseWeb[dto.AuthRefreshRes]{
 		Message: "token refreshed",
