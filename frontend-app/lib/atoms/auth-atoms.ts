@@ -9,3 +9,4 @@ export type UserData = {
 
 export const userAtom = atom<UserData | null>(null)
 export const isAuthLoadingAtom = atom(true)
+export const accessTokenAtom = atom<string | null>(null)

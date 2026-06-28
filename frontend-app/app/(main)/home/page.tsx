@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAtom } from "jotai";
 import { userAtom } from "@/lib/atoms/auth-atoms";
+import { authApi } from "@/lib/api/api-call";
 
 export default function HomePage() {
   const router = useRouter();
@@ -20,14 +21,8 @@ export default function HomePage() {
   async function handleReload() {
     setIsReloading(true);
     try {
-      const res = await fetch("/api/auth/me");
-      if (res.ok) {
-        const json = await res.json();
-        setUser(json.data);
-      }
-      if (res.status === 401) {
-        router.replace("/login");
-      }
+      const data = await authApi.me();
+      setUser(data.data);
     } finally {
       setIsReloading(false);
     }

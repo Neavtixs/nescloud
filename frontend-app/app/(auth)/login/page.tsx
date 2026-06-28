@@ -1,30 +1,36 @@
 "use client";
 
-import { ApiError, authApi } from "@/lib/api/client/api-call";
+import { useAtom } from "jotai";
+import { ApiError, authApi } from "@/lib/api/api-call";
+import { accessTokenAtom } from "@/lib/atoms/auth-atoms";
 import { useRouter } from "next/navigation";
-import { SubmitEvent, useState } from "react";
+import { useState } from "react";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [apiError, setApiError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [, setToken] = useAtom(accessTokenAtom);
   const router = useRouter();
 
-  async function handleSubmit(e: SubmitEvent<HTMLFormElement>) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setIsSubmitting(true);
     setApiError("");
 
     try {
-      await authApi.login({ email: email.trim(), password: password });
-      // router.replace("/home");
+      const res = await authApi.login({
+        email: email.trim(),
+        password: password,
+      });
+      setToken(res.data.access_token);
+      router.replace("/home");
     } catch (err) {
       if (err instanceof ApiError) {
-        setApiError(err.message); // pesan dari backend, misal "invalid email or password"
-        console.log(err.status); // HTTP status, misal 401
+        setApiError(err.message);
       } else {
-        setApiError("Terjadi kesalahan, coba lagi"); // network error
+        setApiError("Terjadi kesalahan, coba lagi");
       }
     }
     setIsSubmitting(false);

@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAtom } from "jotai";
 import { userAtom, isAuthLoadingAtom } from "@/lib/atoms/auth-atoms";
+import { ApiError, authApi } from "@/lib/api/api-call";
 
 export default function MainLayout({
   children,
@@ -19,25 +20,17 @@ export default function MainLayout({
 
     async function validate() {
       try {
-        const res = await fetch("/api/auth/me", {
-          signal: controller.signal,
-        });
-
-        if (!res.ok) {
-          router.replace("/login");
-          return;
-        }
-
-        const { data } = await res.json();
-        setUser(data);
+        const res = await authApi.me();
+        setUser(res.data);
       } catch (err) {
-        if ((err as Error).name !== "AbortError") {
-          router.replace("/login");
+        if (err instanceof ApiError) {
+          if (err.status == 401) {
+            router.replace("/login");
+          }
+        } else {
         }
       } finally {
-        if (!controller.signal.aborted) {
-          setIsLoading(false);
-        }
+        setIsLoading(false);
       }
     }
 
