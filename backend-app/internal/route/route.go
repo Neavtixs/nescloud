@@ -3,7 +3,10 @@ package route
 import (
 	"nescloud/backend-app/internal/apps/feature/auth"
 	"nescloud/backend-app/internal/middleware"
+	"os"
+	"strings"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 )
@@ -18,6 +21,13 @@ func NewHandler(auth *auth.Handler, log *logrus.Logger) *Handler {
 }
 
 func (h *Handler) SetupRoute(app *gin.Engine) {
+	app.Use(cors.New(cors.Config{
+		AllowOrigins:     strings.Split(os.Getenv("CORS_ALLOW_ORIGIN"), ","),
+		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Content-Type"},
+		AllowCredentials: true,
+	}))
+
 	api := app.Group("/api")
 
 	public := api.Group("")
