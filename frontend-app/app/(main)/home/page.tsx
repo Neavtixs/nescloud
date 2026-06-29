@@ -99,20 +99,20 @@ function formatRelativeTime(iso: string): string {
 
 function FileIcon({ mime_type }: { mime_type: string }) {
   if (mime_type.startsWith("image/"))
-    return <ImageIcon size={18} className="text-purple-500" />;
+    return <ImageIcon size={18} className="text-purple-500 dark:text-purple-400" />;
   if (mime_type.startsWith("text/"))
-    return <FileText size={18} className="text-gray-500" />;
+    return <FileText size={18} className="text-gray-500 dark:text-gray-400" />;
   if (
     mime_type.includes("spreadsheet") ||
     mime_type.includes("excel") ||
     mime_type.includes("csv")
   )
-    return <FileSpreadsheet size={18} className="text-green-600" />;
+    return <FileSpreadsheet size={18} className="text-green-600 dark:text-green-400" />;
   if (mime_type.includes("presentation") || mime_type.includes("powerpoint"))
-    return <FileText size={18} className="text-orange-500" />;
+    return <FileText size={18} className="text-orange-500 dark:text-orange-400" />;
   if (mime_type === "application/pdf")
-    return <FileText size={18} className="text-red-500" />;
-  return <File size={18} className="text-gray-400" />;
+    return <FileText size={18} className="text-red-500 dark:text-red-400" />;
+  return <File size={18} className="text-gray-400 dark:text-gray-500" />;
 }
 
 export default function HomePage() {
@@ -124,95 +124,95 @@ export default function HomePage() {
   return (
     <div className="mx-auto max-w-5xl">
       <div className="mb-8">
-        <h1 className="text-2xl font-semibold text-gray-900">
+        <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
           Welcome back{user ? `, ${user.name.split(" ")[0]}` : ""}
         </h1>
-        <p className="mt-1 text-sm text-gray-500">
+        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
           Overview of your cloud storage
         </p>
       </div>
 
       <div className="mb-8 grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <div className="rounded-xl border border-gray-200 bg-white p-4">
+        <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
           <div className="flex items-center gap-2">
-            <div className="rounded-lg bg-blue-50 p-2">
-              <Folder size={18} className="text-blue-600" />
+            <div className="rounded-lg bg-blue-50 p-2 dark:bg-blue-900/30">
+              <Folder size={18} className="text-blue-600 dark:text-blue-400" />
             </div>
-            <span className="text-xs font-medium text-gray-500">Folders</span>
+            <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Folders</span>
           </div>
-          <p className="mt-2 text-2xl font-semibold text-gray-900">
+          <p className="mt-2 text-2xl font-semibold text-gray-900 dark:text-gray-100">
             {stats.folders}
           </p>
         </div>
 
-        <div className="rounded-xl border border-gray-200 bg-white p-4">
+        <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
           <div className="flex items-center gap-2">
-            <div className="rounded-lg bg-green-50 p-2">
-              <File size={18} className="text-green-600" />
+            <div className="rounded-lg bg-green-50 p-2 dark:bg-green-900/20">
+              <File size={18} className="text-green-600 dark:text-green-400" />
             </div>
-            <span className="text-xs font-medium text-gray-500">Files</span>
+            <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Files</span>
           </div>
-          <p className="mt-2 text-2xl font-semibold text-gray-900">
+          <p className="mt-2 text-2xl font-semibold text-gray-900 dark:text-gray-100">
             {stats.files}
           </p>
         </div>
 
-        <div className="rounded-xl border border-gray-200 bg-white p-4">
+        <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
           <div className="flex items-center gap-2">
-            <div className="rounded-lg bg-purple-50 p-2">
-              <HardDrive size={18} className="text-purple-600" />
+            <div className="rounded-lg bg-purple-50 p-2 dark:bg-purple-900/20">
+              <HardDrive size={18} className="text-purple-600 dark:text-purple-400" />
             </div>
-            <span className="text-xs font-medium text-gray-500">Storage</span>
+            <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Storage</span>
           </div>
-          <p className="mt-2 text-2xl font-semibold text-gray-900">
+          <p className="mt-2 text-2xl font-semibold text-gray-900 dark:text-gray-100">
             {used}
           </p>
-          <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
+          <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-gray-800">
             <div
               className="h-full rounded-full bg-purple-500"
               style={{ width: `${usagePercent}%` }}
             />
           </div>
-          <p className="mt-1 text-xs text-gray-400">
+          <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">
             {usagePercent}% of {total}
           </p>
         </div>
 
-        <div className="rounded-xl border border-gray-200 bg-white p-4">
+        <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
           <div className="flex items-center gap-2">
-            <div className="rounded-lg bg-amber-50 p-2">
-              <Link size={18} className="text-amber-600" />
+            <div className="rounded-lg bg-amber-50 p-2 dark:bg-amber-900/20">
+              <Link size={18} className="text-amber-600 dark:text-amber-400" />
             </div>
-            <span className="text-xs font-medium text-gray-500">Shared</span>
+            <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Shared</span>
           </div>
-          <p className="mt-2 text-2xl font-semibold text-gray-900">
+          <p className="mt-2 text-2xl font-semibold text-gray-900 dark:text-gray-100">
             {stats.shared_links}
           </p>
         </div>
       </div>
 
-      <div className="mb-6 rounded-xl border border-gray-200 bg-white">
-        <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4">
-          <h2 className="text-sm font-semibold text-gray-900">
+      <div className="mb-6 rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
+        <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4 dark:border-gray-800">
+          <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
             Recent Files
           </h2>
           <LinkNext
             href="/drive"
-            className="text-xs font-medium text-blue-600 hover:text-blue-700"
+            className="text-xs font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
           >
             View all
           </LinkNext>
         </div>
 
         {mockRecentFiles.length === 0 ? (
-          <div className="flex flex-col items-center gap-2 py-12 text-gray-400">
+          <div className="flex flex-col items-center gap-2 py-12 text-gray-400 dark:text-gray-500">
             <File size={32} />
             <p className="text-sm">No recent files</p>
           </div>
         ) : (
           <table className="w-full">
             <thead>
-              <tr className="border-b border-gray-100 text-left text-xs font-medium text-gray-500">
+              <tr className="border-b border-gray-100 text-left text-xs font-medium text-gray-500 dark:border-gray-800 dark:text-gray-400">
                 <th className="px-5 py-3 font-medium">Name</th>
                 <th className="px-5 py-3 font-medium">Size</th>
                 <th className="hidden px-5 py-3 font-medium sm:table-cell">
@@ -225,33 +225,33 @@ export default function HomePage() {
               {mockRecentFiles.map((file) => (
                 <tr
                   key={file.id}
-                  className="border-b border-gray-50 hover:bg-gray-50"
+                  className="border-b border-gray-50 hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-gray-800"
                 >
                   <td className="px-5 py-3">
                     <div className="flex items-center gap-3">
                       <FileIcon mime_type={file.mime_type} />
-                      <span className="text-sm font-medium text-gray-900">
+                      <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
                         {file.name}
                       </span>
                     </div>
                   </td>
-                  <td className="px-5 py-3 text-sm text-gray-500">
+                  <td className="px-5 py-3 text-sm text-gray-500 dark:text-gray-400">
                     {formatSize(file.size_bytes)}
                   </td>
-                  <td className="hidden px-5 py-3 text-sm text-gray-500 sm:table-cell">
+                  <td className="hidden px-5 py-3 text-sm text-gray-500 dark:text-gray-400 sm:table-cell">
                     {formatRelativeTime(file.modified_at)}
                   </td>
                   <td className="px-5 py-3">
                     <div className="flex items-center gap-1">
                       <button
-                        className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                        className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-gray-300"
                         title="Download"
                         onClick={() => alert("Download coming soon")}
                       >
                         <Download size={15} />
                       </button>
                       <button
-                        className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                        className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-gray-300"
                         title="More"
                         onClick={() => alert("Actions coming soon")}
                       >
@@ -268,14 +268,14 @@ export default function HomePage() {
 
       <div className="flex items-center gap-3">
         <button
-          className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+          className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600"
           onClick={() => alert("Upload coming soon")}
         >
           <Upload size={16} />
           Upload
         </button>
         <button
-          className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+          className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-800"
           onClick={() => alert("New folder coming soon")}
         >
           <FolderPlus size={16} />

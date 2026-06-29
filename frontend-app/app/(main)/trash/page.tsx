@@ -66,30 +66,32 @@ function formatDate(iso: string): string {
 
 function FileIcon({ mime_type }: { mime_type: string }) {
   if (mime_type.startsWith("image/"))
-    return <ImageIcon size={18} className="text-purple-500" />;
+    return <ImageIcon size={18} className="text-purple-500 dark:text-purple-400" />;
   if (mime_type.startsWith("text/"))
-    return <FileText size={18} className="text-gray-500" />;
+    return <FileText size={18} className="text-gray-500 dark:text-gray-400" />;
   if (
     mime_type.includes("spreadsheet") ||
     mime_type.includes("excel") ||
     mime_type.includes("csv")
   )
-    return <FileSpreadsheet size={18} className="text-green-600" />;
+    return <FileSpreadsheet size={18} className="text-green-600 dark:text-green-400" />;
   if (mime_type.includes("presentation") || mime_type.includes("powerpoint"))
-    return <FileText size={18} className="text-orange-500" />;
+    return <FileText size={18} className="text-orange-500 dark:text-orange-400" />;
   if (mime_type === "application/pdf")
-    return <FileText size={18} className="text-red-500" />;
-  return <File size={18} className="text-gray-400" />;
+    return <FileText size={18} className="text-red-500 dark:text-red-400" />;
+  return <File size={18} className="text-gray-400 dark:text-gray-500" />;
 }
 
 export default function TrashPage() {
   return (
     <div className="mx-auto max-w-5xl">
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-gray-900">Trash</h1>
+        <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
+          Trash
+        </h1>
         {mockTrashItems.length > 0 && (
           <button
-            className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
+            className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-600"
             onClick={() => {
               if (confirm("Permanently delete all items in trash?")) {
                 alert("Empty trash coming soon");
@@ -102,7 +104,7 @@ export default function TrashPage() {
         )}
       </div>
 
-      <div className="mb-6 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+      <div className="mb-6 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-900/20 dark:text-amber-300">
         <AlertTriangle size={16} className="mt-0.5 shrink-0" />
         <span>
           Items in trash are permanently deleted after 24 hours. Restore items
@@ -111,20 +113,22 @@ export default function TrashPage() {
       </div>
 
       {mockTrashItems.length === 0 ? (
-        <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-gray-300 bg-white py-16">
-          <Trash2 size={40} className="text-gray-300" />
+        <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-gray-300 bg-white py-16 dark:border-gray-700 dark:bg-gray-900">
+          <Trash2 size={40} className="text-gray-300 dark:text-gray-600" />
           <div className="text-center">
-            <p className="text-sm font-medium text-gray-900">Trash is empty</p>
-            <p className="mt-1 text-xs text-gray-500">
+            <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+              Trash is empty
+            </p>
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
               Deleted files and folders will appear here
             </p>
           </div>
         </div>
       ) : (
-        <div className="rounded-xl border border-gray-200 bg-white">
+        <div className="rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-gray-200 text-left text-xs font-medium text-gray-500">
+              <tr className="border-b border-gray-200 text-left text-xs font-medium text-gray-500 dark:border-gray-800 dark:text-gray-400">
                 <th className="px-5 py-3 font-medium">Name</th>
                 <th className="hidden px-5 py-3 font-medium sm:table-cell">
                   Size
@@ -140,42 +144,42 @@ export default function TrashPage() {
               {mockTrashItems.map((item) => (
                 <tr
                   key={item.id}
-                  className="border-b border-gray-50 hover:bg-gray-50"
+                  className="border-b border-gray-50 hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-gray-800"
                 >
                   <td className="px-5 py-3">
                     <div className="flex items-center gap-3">
                       {item.type === "folder" ? (
-                        <Folder size={18} className="text-blue-500" />
+                        <Folder size={18} className="text-blue-500 dark:text-blue-400" />
                       ) : (
                         <FileIcon mime_type={item.mime_type!} />
                       )}
-                      <span className="text-sm font-medium text-gray-900">
+                      <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
                         {item.name}
                       </span>
                     </div>
                   </td>
-                  <td className="hidden px-5 py-3 text-sm text-gray-500 sm:table-cell">
+                  <td className="hidden px-5 py-3 text-sm text-gray-500 dark:text-gray-400 sm:table-cell">
                     {item.type === "folder"
                       ? "--"
                       : formatSize(item.size_bytes!)}
                   </td>
-                  <td className="hidden px-5 py-3 text-sm text-gray-500 md:table-cell">
+                  <td className="hidden px-5 py-3 text-sm text-gray-500 dark:text-gray-400 md:table-cell">
                     {item.original_path}
                   </td>
-                  <td className="px-5 py-3 text-sm text-gray-500">
+                  <td className="px-5 py-3 text-sm text-gray-500 dark:text-gray-400">
                     {formatDate(item.deleted_at)}
                   </td>
                   <td className="px-5 py-3">
                     <div className="flex items-center gap-1">
                       <button
-                        className="inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50"
+                        className="inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/30"
                         onClick={() => alert("Restore coming soon")}
                       >
                         <RotateCcw size={13} />
                         Restore
                       </button>
                       <button
-                        className="inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-50"
+                        className="inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
                         onClick={() => {
                           if (
                             confirm(

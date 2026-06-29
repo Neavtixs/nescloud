@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -49,20 +50,25 @@ export default function RegisterPage() {
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-5">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-gray-900">
+        <h1 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-gray-100">
           Daftar
         </h1>
-        <p className="mt-1 text-sm text-gray-500">Buat akun baru Anda</p>
+        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+          Buat akun baru Anda
+        </p>
       </div>
 
       {apiError && (
-        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-900/20 dark:text-red-400">
           {apiError}
         </div>
       )}
 
       <div className="flex flex-col gap-1.5">
-        <label htmlFor="name" className="text-sm font-medium text-gray-900">
+        <label
+          htmlFor="name"
+          className="text-sm font-medium text-gray-900 dark:text-gray-100"
+        >
           Nama
         </label>
         <input
@@ -71,13 +77,16 @@ export default function RegisterPage() {
           type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500"
+          className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 dark:focus:ring-blue-800"
           placeholder="Nama lengkap"
         />
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <label htmlFor="email" className="text-sm font-medium text-gray-900">
+        <label
+          htmlFor="email"
+          className="text-sm font-medium text-gray-900 dark:text-gray-100"
+        >
           Email
         </label>
         <input
@@ -86,13 +95,16 @@ export default function RegisterPage() {
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500"
+          className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 dark:focus:ring-blue-800"
           placeholder="nama@email.com"
         />
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <label htmlFor="password" className="text-sm font-medium text-gray-900">
+        <label
+          htmlFor="password"
+          className="text-sm font-medium text-gray-900 dark:text-gray-100"
+        >
           Password
         </label>
         <input
@@ -101,7 +113,7 @@ export default function RegisterPage() {
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500"
+          className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 dark:focus:ring-blue-800"
           placeholder="Minimal 6 karakter"
         />
       </div>
@@ -109,7 +121,7 @@ export default function RegisterPage() {
       <div className="flex flex-col gap-1.5">
         <label
           htmlFor="confirmPassword"
-          className="text-sm font-medium text-gray-900"
+          className="text-sm font-medium text-gray-900 dark:text-gray-100"
         >
           Konfirmasi Password
         </label>
@@ -119,7 +131,7 @@ export default function RegisterPage() {
           type="password"
           value={confirmPassword}
           onChange={(e) => setConfirmPassword(e.target.value)}
-          className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500"
+          className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 dark:focus:ring-blue-800"
           placeholder="Ulangi password"
         />
       </div>
@@ -127,19 +139,19 @@ export default function RegisterPage() {
       <button
         type="submit"
         disabled={isSubmitting}
-        className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+        className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 dark:bg-blue-700 dark:hover:bg-blue-600"
       >
         {isSubmitting ? "Memproses..." : "Daftar"}
       </button>
 
-      <p className="text-center text-sm text-gray-500">
+      <p className="text-center text-sm text-gray-500 dark:text-gray-400">
         Sudah punya akun?{" "}
-        <a
+        <Link
           href="/login"
-          className="font-medium text-blue-600 hover:text-blue-500"
+          className="font-medium text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300"
         >
           Masuk
-        </a>
+        </Link>
       </p>
     </form>
   );

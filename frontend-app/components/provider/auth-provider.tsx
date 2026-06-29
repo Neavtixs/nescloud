@@ -51,15 +51,15 @@ export function invalidateAuth() {
 
 function ConnectionError({ onRetry }: { onRetry: () => void }) {
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-gray-50 px-4">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-gray-50 px-4 dark:bg-gray-950">
       <div className="text-center">
-        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-red-100">
-          <WifiOff size={28} className="text-red-600" />
+        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/30">
+          <WifiOff size={28} className="text-red-600 dark:text-red-400" />
         </div>
-        <h2 className="text-xl font-semibold text-gray-900">
+        <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
           Connection Error
         </h2>
-        <p className="mt-2 text-sm text-gray-500">
+        <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
           Unable to reach the server. Please check your internet connection and
           try again.
         </p>
@@ -102,7 +102,7 @@ function AuthGate({ children }: { children: React.ReactNode }) {
 
 function LoadingFallback() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 text-sm text-gray-400">
+    <div className="flex min-h-screen items-center justify-center bg-gray-50 text-sm text-gray-400 dark:bg-gray-950 dark:text-gray-500">
       Loading...
     </div>
   );

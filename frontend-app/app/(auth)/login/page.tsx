@@ -6,6 +6,7 @@ import { accessTokenAtom } from "@/lib/atoms/auth-atoms";
 import { invalidateAuth } from "@/components/provider/auth-provider";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import Link from "next/link";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -41,20 +42,25 @@ export default function LoginPage() {
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-5">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-gray-900">
+        <h1 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-gray-100">
           Masuk
         </h1>
-        <p className="mt-1 text-sm text-gray-500">Silakan masuk ke akun Anda</p>
+        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+          Silakan masuk ke akun Anda
+        </p>
       </div>
 
       {apiError && (
-        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-900/20 dark:text-red-400">
           {apiError}
         </div>
       )}
 
       <div className="flex flex-col gap-1.5">
-        <label htmlFor="email" className="text-sm font-medium text-gray-900">
+        <label
+          htmlFor="email"
+          className="text-sm font-medium text-gray-900 dark:text-gray-100"
+        >
           Email
         </label>
         <input
@@ -63,13 +69,16 @@ export default function LoginPage() {
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500"
+          className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 dark:focus:ring-blue-800"
           placeholder="nama@email.com"
         />
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <label htmlFor="password" className="text-sm font-medium text-gray-900">
+        <label
+          htmlFor="password"
+          className="text-sm font-medium text-gray-900 dark:text-gray-100"
+        >
           Password
         </label>
         <input
@@ -78,7 +87,7 @@ export default function LoginPage() {
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500"
+          className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 dark:focus:ring-blue-800"
           placeholder="Password"
         />
       </div>
@@ -86,19 +95,19 @@ export default function LoginPage() {
       <button
         type="submit"
         disabled={isSubmitting}
-        className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+        className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 dark:bg-blue-700 dark:hover:bg-blue-600"
       >
         {isSubmitting ? "Memproses..." : "Masuk"}
       </button>
 
-      <p className="text-center text-sm text-gray-500">
+      <p className="text-center text-sm text-gray-500 dark:text-gray-400">
         Belum punya akun?{" "}
-        <a
+        <Link
           href="/register"
-          className="font-medium text-blue-600 hover:text-blue-500"
+          className="font-medium text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300"
         >
           Daftar
-        </a>
+        </Link>
       </p>
     </form>
   );

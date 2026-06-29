@@ -110,29 +110,27 @@ function formatDate(iso: string): string {
 
 function FileIcon({ mime_type }: { mime_type: string }) {
   if (mime_type.startsWith("image/"))
-    return <ImageIcon size={18} className="text-purple-500" />;
+    return <ImageIcon size={18} className="text-purple-500 dark:text-purple-400" />;
   if (mime_type.startsWith("text/"))
-    return <FileText size={18} className="text-gray-500" />;
+    return <FileText size={18} className="text-gray-500 dark:text-gray-400" />;
   if (
     mime_type.includes("spreadsheet") ||
     mime_type.includes("excel") ||
     mime_type.includes("csv")
   )
-    return <FileSpreadsheet size={18} className="text-green-600" />;
+    return <FileSpreadsheet size={18} className="text-green-600 dark:text-green-400" />;
   if (mime_type.includes("presentation") || mime_type.includes("powerpoint"))
-    return <FileText size={18} className="text-orange-500" />;
+    return <FileText size={18} className="text-orange-500 dark:text-orange-400" />;
   if (mime_type === "application/pdf")
-    return <FileText size={18} className="text-red-500" />;
-  return <File size={18} className="text-gray-400" />;
+    return <FileText size={18} className="text-red-500 dark:text-red-400" />;
+  return <File size={18} className="text-gray-400 dark:text-gray-500" />;
 }
 
 export default function DrivePage() {
   const [search, setSearch] = useState("");
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
-  const breadcrumb = [
-    { label: "My Drive", href: "/drive" },
-  ];
+  const breadcrumb = [{ label: "My Drive", href: "/drive" }];
 
   const filtered = search
     ? mockItems.filter((item) =>
@@ -147,12 +145,18 @@ export default function DrivePage() {
 
   return (
     <div className="mx-auto max-w-5xl">
-      <div className="mb-6 flex items-center gap-2 text-sm text-gray-500">
+      <div className="mb-6 flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
         {breadcrumb.map((crumb, i) => (
           <span key={crumb.href} className="flex items-center gap-2">
             {i > 0 && <ChevronRight size={14} />}
             {i === 0 && <Home size={14} />}
-            <span className={i === breadcrumb.length - 1 ? "text-gray-900 font-medium" : ""}>
+            <span
+              className={
+                i === breadcrumb.length - 1
+                  ? "font-medium text-gray-900 dark:text-gray-100"
+                  : ""
+              }
+            >
               {crumb.label}
             </span>
           </span>
@@ -163,27 +167,27 @@ export default function DrivePage() {
         <div className="relative flex-1 max-w-sm">
           <Search
             size={16}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500"
           />
           <input
             type="text"
             placeholder="Search files and folders..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full rounded-lg border border-gray-300 bg-white py-2 pl-9 pr-3 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+            className="w-full rounded-lg border border-gray-300 bg-white py-2 pl-9 pr-3 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 dark:focus:border-blue-500 dark:focus:ring-blue-800"
           />
         </div>
 
         <div className="flex items-center gap-2">
           <button
-            className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
             onClick={() => alert("New folder coming soon")}
           >
             <FolderPlus size={16} />
             New Folder
           </button>
           <button
-            className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+            className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600"
             onClick={() => alert("Upload coming soon")}
           >
             <Upload size={16} />
@@ -193,13 +197,13 @@ export default function DrivePage() {
       </div>
 
       {sorted.length === 0 ? (
-        <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-gray-300 bg-white py-16">
-          <Folder size={40} className="text-gray-300" />
+        <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-gray-300 bg-white py-16 dark:border-gray-700 dark:bg-gray-900">
+          <Folder size={40} className="text-gray-300 dark:text-gray-600" />
           <div className="text-center">
-            <p className="text-sm font-medium text-gray-900">
+            <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
               {search ? "No results found" : "This folder is empty"}
             </p>
-            <p className="mt-1 text-xs text-gray-500">
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
               {search
                 ? "Try a different search term"
                 : "Upload files or create a new folder to get started"}
@@ -207,7 +211,7 @@ export default function DrivePage() {
           </div>
           {!search && (
             <button
-              className="mt-2 inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+              className="mt-2 inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600"
               onClick={() => alert("Upload coming soon")}
             >
               <Upload size={16} />
@@ -216,12 +220,15 @@ export default function DrivePage() {
           )}
         </div>
       ) : (
-        <div className="rounded-xl border border-gray-200 bg-white">
+        <div className="rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-gray-200 text-left text-xs font-medium text-gray-500">
+              <tr className="border-b border-gray-200 text-left text-xs font-medium text-gray-500 dark:border-gray-800 dark:text-gray-400">
                 <th className="w-10 px-5 py-3">
-                  <input type="checkbox" className="rounded border-gray-300" />
+                  <input
+                    type="checkbox"
+                    className="rounded border-gray-300 dark:border-gray-600 dark:bg-gray-800"
+                  />
                 </th>
                 <th className="px-5 py-3 font-medium">Name</th>
                 <th className="hidden px-5 py-3 font-medium sm:table-cell">
@@ -237,29 +244,26 @@ export default function DrivePage() {
               {sorted.map((item) => (
                 <tr
                   key={item.id}
-                  className="border-b border-gray-50 hover:bg-gray-50"
+                  className="border-b border-gray-50 hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-gray-800"
                 >
                   <td className="px-5 py-3">
                     <input
                       type="checkbox"
-                      className="rounded border-gray-300"
+                      className="rounded border-gray-300 dark:border-gray-600 dark:bg-gray-800"
                     />
                   </td>
                   <td className="px-5 py-3">
                     <div className="flex items-center gap-3">
                       {item.type === "folder" ? (
-                        <Folder
-                          size={18}
-                          className="text-blue-500"
-                        />
+                        <Folder size={18} className="text-blue-500 dark:text-blue-400" />
                       ) : (
                         <FileIcon mime_type={item.mime_type!} />
                       )}
                       <span
                         className={`text-sm font-medium ${
                           item.type === "folder"
-                            ? "cursor-pointer text-blue-600 hover:underline"
-                            : "text-gray-900"
+                            ? "cursor-pointer text-blue-600 hover:underline dark:text-blue-400 dark:hover:text-blue-300"
+                            : "text-gray-900 dark:text-gray-100"
                         }`}
                         onClick={() => {
                           if (item.type === "folder")
@@ -270,17 +274,17 @@ export default function DrivePage() {
                       </span>
                     </div>
                   </td>
-                  <td className="hidden px-5 py-3 text-sm text-gray-500 sm:table-cell">
+                  <td className="hidden px-5 py-3 text-sm text-gray-500 dark:text-gray-400 sm:table-cell">
                     {item.type === "folder"
                       ? "--"
                       : formatSize(item.size_bytes!)}
                   </td>
-                  <td className="hidden px-5 py-3 text-sm text-gray-500 md:table-cell">
+                  <td className="hidden px-5 py-3 text-sm text-gray-500 dark:text-gray-400 md:table-cell">
                     {formatDate(item.modified_at)}
                   </td>
                   <td className="relative px-5 py-3">
                     <button
-                      className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                      className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-gray-300"
                       onClick={() =>
                         setOpenMenuId(
                           openMenuId === item.id ? null : item.id,
@@ -296,10 +300,10 @@ export default function DrivePage() {
                           className="fixed inset-0 z-10"
                           onClick={() => setOpenMenuId(null)}
                         />
-                        <div className="absolute right-5 top-10 z-20 w-44 rounded-lg border border-gray-200 bg-white py-1 shadow-lg">
+                        <div className="absolute right-5 top-10 z-20 w-44 rounded-lg border border-gray-200 bg-white py-1 shadow-lg dark:border-gray-800 dark:bg-gray-900">
                           {item.type === "file" && (
                             <button
-                              className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                              className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800"
                               onClick={() => {
                                 setOpenMenuId(null);
                                 alert("Download coming soon");
@@ -310,7 +314,7 @@ export default function DrivePage() {
                             </button>
                           )}
                           <button
-                            className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                            className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800"
                             onClick={() => {
                               setOpenMenuId(null);
                               alert("Rename coming soon");
@@ -321,7 +325,7 @@ export default function DrivePage() {
                           </button>
                           {item.type === "file" && (
                             <button
-                              className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                              className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800"
                               onClick={() => {
                                 setOpenMenuId(null);
                                 alert("Share coming soon");
@@ -332,7 +336,7 @@ export default function DrivePage() {
                             </button>
                           )}
                           <button
-                            className="flex w-full items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50"
+                            className="flex w-full items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
                             onClick={() => {
                               setOpenMenuId(null);
                               alert("Delete coming soon");
@@ -350,28 +354,28 @@ export default function DrivePage() {
             </tbody>
           </table>
 
-          <div className="flex items-center justify-between border-t border-gray-200 px-5 py-3">
-            <p className="text-xs text-gray-500">
+          <div className="flex items-center justify-between border-t border-gray-200 px-5 py-3 dark:border-gray-800">
+            <p className="text-xs text-gray-500 dark:text-gray-400">
               1–{sorted.length} of {mockItems.length} items
             </p>
             <div className="flex items-center gap-1">
-              <button className="rounded px-2 py-1 text-xs text-gray-400 hover:bg-gray-100 hover:text-gray-600">
+              <button className="rounded px-2 py-1 text-xs text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-gray-300">
                 ←
               </button>
-              <button className="rounded bg-blue-50 px-2 py-1 text-xs font-medium text-blue-600">
+              <button className="rounded bg-blue-50 px-2 py-1 text-xs font-medium text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">
                 1
               </button>
-              <button className="rounded px-2 py-1 text-xs text-gray-500 hover:bg-gray-100">
+              <button className="rounded px-2 py-1 text-xs text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800">
                 2
               </button>
-              <button className="rounded px-2 py-1 text-xs text-gray-500 hover:bg-gray-100">
+              <button className="rounded px-2 py-1 text-xs text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800">
                 3
               </button>
-              <span className="px-1 text-xs text-gray-400">...</span>
-              <button className="rounded px-2 py-1 text-xs text-gray-500 hover:bg-gray-100">
+              <span className="px-1 text-xs text-gray-400 dark:text-gray-500">...</span>
+              <button className="rounded px-2 py-1 text-xs text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800">
                 6
               </button>
-              <button className="rounded px-2 py-1 text-xs text-gray-400 hover:bg-gray-100 hover:text-gray-600">
+              <button className="rounded px-2 py-1 text-xs text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-gray-300">
                 →
               </button>
             </div>
