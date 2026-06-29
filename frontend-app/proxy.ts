@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-const protectedRoutes = ["/home"];
+const protectedRoutes = ["/home", "/drive", "/trash", "/shared"];
 const guestRoutes = ["/login", "/register"];
 
 export function proxy(request: NextRequest) {
@@ -24,5 +24,12 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/home/:path*", "/login/:path*", "/register/:path*"],
+  matcher: [
+    "/home/:path*",
+    "/drive/:path*",
+    "/trash/:path*",
+    "/shared/:path*",
+    "/login/:path*",
+    "/register/:path*",
+  ],
 };
