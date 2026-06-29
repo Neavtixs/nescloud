@@ -99,7 +99,9 @@ function formatRelativeTime(iso: string): string {
 
 function FileIcon({ mime_type }: { mime_type: string }) {
   if (mime_type.startsWith("image/"))
-    return <ImageIcon size={18} className="text-purple-500 dark:text-purple-400" />;
+    return (
+      <ImageIcon size={18} className="text-purple-500 dark:text-purple-400" />
+    );
   if (mime_type.startsWith("text/"))
     return <FileText size={18} className="text-gray-500 dark:text-gray-400" />;
   if (
@@ -107,9 +109,16 @@ function FileIcon({ mime_type }: { mime_type: string }) {
     mime_type.includes("excel") ||
     mime_type.includes("csv")
   )
-    return <FileSpreadsheet size={18} className="text-green-600 dark:text-green-400" />;
+    return (
+      <FileSpreadsheet
+        size={18}
+        className="text-green-600 dark:text-green-400"
+      />
+    );
   if (mime_type.includes("presentation") || mime_type.includes("powerpoint"))
-    return <FileText size={18} className="text-orange-500 dark:text-orange-400" />;
+    return (
+      <FileText size={18} className="text-orange-500 dark:text-orange-400" />
+    );
   if (mime_type === "application/pdf")
     return <FileText size={18} className="text-red-500 dark:text-red-400" />;
   return <File size={18} className="text-gray-400 dark:text-gray-500" />;
@@ -138,7 +147,9 @@ export default function HomePage() {
             <div className="rounded-lg bg-blue-50 p-2 dark:bg-blue-900/30">
               <Folder size={18} className="text-blue-600 dark:text-blue-400" />
             </div>
-            <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Folders</span>
+            <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
+              Folders
+            </span>
           </div>
           <p className="mt-2 text-2xl font-semibold text-gray-900 dark:text-gray-100">
             {stats.folders}
@@ -150,7 +161,9 @@ export default function HomePage() {
             <div className="rounded-lg bg-green-50 p-2 dark:bg-green-900/20">
               <File size={18} className="text-green-600 dark:text-green-400" />
             </div>
-            <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Files</span>
+            <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
+              Files
+            </span>
           </div>
           <p className="mt-2 text-2xl font-semibold text-gray-900 dark:text-gray-100">
             {stats.files}
@@ -160,9 +173,14 @@ export default function HomePage() {
         <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
           <div className="flex items-center gap-2">
             <div className="rounded-lg bg-purple-50 p-2 dark:bg-purple-900/20">
-              <HardDrive size={18} className="text-purple-600 dark:text-purple-400" />
+              <HardDrive
+                size={18}
+                className="text-purple-600 dark:text-purple-400"
+              />
             </div>
-            <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Storage</span>
+            <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
+              Storage
+            </span>
           </div>
           <p className="mt-2 text-2xl font-semibold text-gray-900 dark:text-gray-100">
             {used}
@@ -183,7 +201,9 @@ export default function HomePage() {
             <div className="rounded-lg bg-amber-50 p-2 dark:bg-amber-900/20">
               <Link size={18} className="text-amber-600 dark:text-amber-400" />
             </div>
-            <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Shared</span>
+            <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
+              Shared
+            </span>
           </div>
           <p className="mt-2 text-2xl font-semibold text-gray-900 dark:text-gray-100">
             {stats.shared_links}
@@ -191,7 +211,7 @@ export default function HomePage() {
         </div>
       </div>
 
-      <div className="mb-6 rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
+      <div className="mb-6 overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
         <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4 dark:border-gray-800">
           <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
             Recent Files
@@ -225,7 +245,7 @@ export default function HomePage() {
               {mockRecentFiles.map((file) => (
                 <tr
                   key={file.id}
-                  className="border-b border-gray-50 hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-gray-800"
+                  className="border-b border-gray-50 hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-gray-800 last:border-b-0"
                 >
                   <td className="px-5 py-3">
                     <div className="flex items-center gap-3">

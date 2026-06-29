@@ -127,7 +127,7 @@ export default function SharedPage() {
         </div>
       ) : (
         <Tooltip.Provider delayDuration={0}>
-          <div className="rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
+          <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-gray-200 text-left text-xs font-medium text-gray-500 dark:border-gray-800 dark:text-gray-400">
@@ -146,7 +146,7 @@ export default function SharedPage() {
                 {mockSharedItems.map((item) => (
                   <tr
                     key={item.id}
-                    className="border-b border-gray-50 hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-gray-800"
+                    className="border-b border-gray-50 hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-gray-800 last:border-b-0"
                   >
                     <td className="px-5 py-3">
                       <div className="flex items-center gap-3">

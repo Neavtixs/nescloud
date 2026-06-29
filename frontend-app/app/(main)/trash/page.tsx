@@ -169,7 +169,7 @@ export default function TrashPage() {
           </div>
         </div>
       ) : (
-        <div className="rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
+        <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
           <table className="w-full">
             <thead>
               <tr className="border-b border-gray-200 text-left text-xs font-medium text-gray-500 dark:border-gray-800 dark:text-gray-400">
@@ -196,7 +196,7 @@ export default function TrashPage() {
               {items.map((item) => (
                 <tr
                   key={item.id}
-                  className={`border-b border-gray-50 hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-gray-800 ${
+                  className={`border-b border-gray-50 hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-gray-800 last:border-b-0 ${
                     selectedIds.has(item.id) ? "bg-blue-50 dark:bg-blue-900/10" : ""
                   }`}
                 >
