@@ -17,6 +17,8 @@ import {
   FileSpreadsheet,
   ChevronRight,
   Home,
+  LayoutGrid,
+  List,
 } from "lucide-react";
 
 type ItemType = "folder" | "file";
@@ -126,8 +128,69 @@ function FileIcon({ mime_type }: { mime_type: string }) {
   return <File size={18} className="text-gray-400 dark:text-gray-500" />;
 }
 
+function ItemMenu({
+  type,
+  onClose,
+}: {
+  type: ItemType;
+  onClose: () => void;
+}) {
+  return (
+    <>
+      <div className="fixed inset-0 z-10" onClick={onClose} />
+      <div className="absolute right-0 top-8 z-20 w-44 rounded-lg border border-gray-200 bg-white py-1 shadow-lg dark:border-gray-800 dark:bg-gray-900">
+        {type === "file" && (
+          <button
+            className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800"
+            onClick={() => {
+              onClose();
+              alert("Download coming soon");
+            }}
+          >
+            <Download size={14} />
+            Download
+          </button>
+        )}
+        <button
+          className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800"
+          onClick={() => {
+            onClose();
+            alert("Rename coming soon");
+          }}
+        >
+          <Pencil size={14} />
+          Rename
+        </button>
+        {type === "file" && (
+          <button
+            className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800"
+            onClick={() => {
+              onClose();
+              alert("Share coming soon");
+            }}
+          >
+            <Link size={14} />
+            Share
+          </button>
+        )}
+        <button
+          className="flex w-full items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
+          onClick={() => {
+            onClose();
+            alert("Delete coming soon");
+          }}
+        >
+          <Trash2 size={14} />
+          Delete
+        </button>
+      </div>
+    </>
+  );
+}
+
 export default function DrivePage() {
   const [search, setSearch] = useState("");
+  const [viewMode, setViewMode] = useState<"list" | "grid">("list");
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
   const breadcrumb = [{ label: "My Drive", href: "/drive" }];
@@ -178,6 +241,31 @@ export default function DrivePage() {
           />
         </div>
 
+        <div className="flex items-center gap-1 rounded-lg border border-gray-300 bg-white p-0.5 dark:border-gray-700 dark:bg-gray-800">
+          <button
+            onClick={() => setViewMode("list")}
+            className={`rounded-md p-1.5 transition-colors ${
+              viewMode === "list"
+                ? "bg-white text-gray-900 shadow-sm dark:bg-gray-700 dark:text-gray-100"
+                : "text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
+            }`}
+            title="List view"
+          >
+            <List size={16} />
+          </button>
+          <button
+            onClick={() => setViewMode("grid")}
+            className={`rounded-md p-1.5 transition-colors ${
+              viewMode === "grid"
+                ? "bg-white text-gray-900 shadow-sm dark:bg-gray-700 dark:text-gray-100"
+                : "text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
+            }`}
+            title="Grid view"
+          >
+            <LayoutGrid size={16} />
+          </button>
+        </div>
+
         <div className="flex items-center gap-2">
           <button
             className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
@@ -219,7 +307,7 @@ export default function DrivePage() {
             </button>
           )}
         </div>
-      ) : (
+      ) : viewMode === "list" ? (
         <div className="rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
           <table className="w-full">
             <thead>
@@ -295,58 +383,10 @@ export default function DrivePage() {
                     </button>
 
                     {openMenuId === item.id && (
-                      <>
-                        <div
-                          className="fixed inset-0 z-10"
-                          onClick={() => setOpenMenuId(null)}
-                        />
-                        <div className="absolute right-5 top-10 z-20 w-44 rounded-lg border border-gray-200 bg-white py-1 shadow-lg dark:border-gray-800 dark:bg-gray-900">
-                          {item.type === "file" && (
-                            <button
-                              className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800"
-                              onClick={() => {
-                                setOpenMenuId(null);
-                                alert("Download coming soon");
-                              }}
-                            >
-                              <Download size={14} />
-                              Download
-                            </button>
-                          )}
-                          <button
-                            className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800"
-                            onClick={() => {
-                              setOpenMenuId(null);
-                              alert("Rename coming soon");
-                            }}
-                          >
-                            <Pencil size={14} />
-                            Rename
-                          </button>
-                          {item.type === "file" && (
-                            <button
-                              className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800"
-                              onClick={() => {
-                                setOpenMenuId(null);
-                                alert("Share coming soon");
-                              }}
-                            >
-                              <Link size={14} />
-                              Share
-                            </button>
-                          )}
-                          <button
-                            className="flex w-full items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
-                            onClick={() => {
-                              setOpenMenuId(null);
-                              alert("Delete coming soon");
-                            }}
-                          >
-                            <Trash2 size={14} />
-                            Delete
-                          </button>
-                        </div>
-                      </>
+                      <ItemMenu
+                        type={item.type}
+                        onClose={() => setOpenMenuId(null)}
+                      />
                     )}
                   </td>
                 </tr>
@@ -380,6 +420,62 @@ export default function DrivePage() {
               </button>
             </div>
           </div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+          {sorted.map((item) => (
+            <div
+              key={item.id}
+              className="group relative rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900"
+            >
+              <div className="flex items-start justify-between">
+                {item.type === "folder" ? (
+                  <div className="rounded-lg bg-blue-50 p-2.5 dark:bg-blue-900/30">
+                    <Folder size={22} className="text-blue-500 dark:text-blue-400" />
+                  </div>
+                ) : (
+                  <FileIcon mime_type={item.mime_type!} />
+                )}
+                <button
+                  className="rounded p-1 text-gray-400 opacity-0 transition-opacity hover:bg-gray-100 hover:text-gray-600 group-hover:opacity-100 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-gray-300"
+                  onClick={() =>
+                    setOpenMenuId(openMenuId === item.id ? null : item.id)
+                  }
+                >
+                  <MoreHorizontal size={15} />
+                </button>
+
+                {openMenuId === item.id && (
+                  <ItemMenu
+                    type={item.type}
+                    onClose={() => setOpenMenuId(null)}
+                  />
+                )}
+              </div>
+
+              <p
+                className={`mt-3 truncate text-sm font-medium ${
+                  item.type === "folder"
+                    ? "cursor-pointer text-blue-600 hover:underline dark:text-blue-400"
+                    : "text-gray-900 dark:text-gray-100"
+                }`}
+                onClick={() => {
+                  if (item.type === "folder")
+                    alert(`Navigate to folder: ${item.name}`);
+                }}
+              >
+                {item.name}
+              </p>
+
+              <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">
+                {item.type === "folder"
+                  ? "--"
+                  : formatSize(item.size_bytes!)}
+                {" · "}
+                {formatDate(item.modified_at)}
+              </p>
+            </div>
+          ))}
         </div>
       )}
     </div>

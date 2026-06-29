@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import {
   Trash2,
   RotateCcw,
@@ -83,25 +84,68 @@ function FileIcon({ mime_type }: { mime_type: string }) {
 }
 
 export default function TrashPage() {
+  const [items, setItems] = useState(mockTrashItems);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  const allSelected = items.length > 0 && selectedIds.size === items.length;
+
+  function toggleSelect(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleSelectAll() {
+    if (allSelected) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(items.map((i) => i.id)));
+    }
+  }
+
+  function handleDeleteSelected() {
+    const count = selectedIds.size;
+    if (
+      !confirm(
+        `Permanently delete ${count} selected ${count === 1 ? "item" : "items"}? This cannot be undone.`,
+      )
+    )
+      return;
+    setItems((prev) => prev.filter((i) => !selectedIds.has(i.id)));
+    setSelectedIds(new Set());
+  }
+
+  function handleEmptyTrash() {
+    if (!confirm("Permanently delete all items in trash?")) return;
+    setItems([]);
+    setSelectedIds(new Set());
+  }
+
   return (
     <div className="mx-auto max-w-5xl">
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
           Trash
         </h1>
-        {mockTrashItems.length > 0 && (
-          <button
-            className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-600"
-            onClick={() => {
-              if (confirm("Permanently delete all items in trash?")) {
-                alert("Empty trash coming soon");
-              }
-            }}
-          >
-            <Trash2 size={16} />
-            Empty Trash
-          </button>
-        )}
+        <div className="flex items-center gap-3">
+          {selectedIds.size > 0 && (
+            <span className="text-sm text-gray-500 dark:text-gray-400">
+              {selectedIds.size} selected
+            </span>
+          )}
+          {items.length > 0 && (
+            <button
+              className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-600"
+              onClick={selectedIds.size > 0 ? handleDeleteSelected : handleEmptyTrash}
+            >
+              <Trash2 size={16} />
+              {selectedIds.size > 0 ? "Delete Selected" : "Empty Trash"}
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="mb-6 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-900/20 dark:text-amber-300">
@@ -112,7 +156,7 @@ export default function TrashPage() {
         </span>
       </div>
 
-      {mockTrashItems.length === 0 ? (
+      {items.length === 0 ? (
         <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-gray-300 bg-white py-16 dark:border-gray-700 dark:bg-gray-900">
           <Trash2 size={40} className="text-gray-300 dark:text-gray-600" />
           <div className="text-center">
@@ -129,6 +173,14 @@ export default function TrashPage() {
           <table className="w-full">
             <thead>
               <tr className="border-b border-gray-200 text-left text-xs font-medium text-gray-500 dark:border-gray-800 dark:text-gray-400">
+                <th className="w-10 px-5 py-3">
+                  <input
+                    type="checkbox"
+                    checked={allSelected}
+                    onChange={toggleSelectAll}
+                    className="rounded border-gray-300 dark:border-gray-600 dark:bg-gray-800"
+                  />
+                </th>
                 <th className="px-5 py-3 font-medium">Name</th>
                 <th className="hidden px-5 py-3 font-medium sm:table-cell">
                   Size
@@ -141,11 +193,21 @@ export default function TrashPage() {
               </tr>
             </thead>
             <tbody>
-              {mockTrashItems.map((item) => (
+              {items.map((item) => (
                 <tr
                   key={item.id}
-                  className="border-b border-gray-50 hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-gray-800"
+                  className={`border-b border-gray-50 hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-gray-800 ${
+                    selectedIds.has(item.id) ? "bg-blue-50 dark:bg-blue-900/10" : ""
+                  }`}
                 >
+                  <td className="px-5 py-3">
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.has(item.id)}
+                      onChange={() => toggleSelect(item.id)}
+                      className="rounded border-gray-300 dark:border-gray-600 dark:bg-gray-800"
+                    />
+                  </td>
                   <td className="px-5 py-3">
                     <div className="flex items-center gap-3">
                       {item.type === "folder" ? (
@@ -186,7 +248,14 @@ export default function TrashPage() {
                               `Permanently delete "${item.name}"? This cannot be undone.`,
                             )
                           ) {
-                            alert("Permanent delete coming soon");
+                            setItems((prev) =>
+                              prev.filter((i) => i.id !== item.id),
+                            );
+                            setSelectedIds((prev) => {
+                              const next = new Set(prev);
+                              next.delete(item.id);
+                              return next;
+                            });
                           }
                         }}
                       >

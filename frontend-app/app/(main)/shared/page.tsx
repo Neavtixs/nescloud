@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import * as Tooltip from "@radix-ui/react-tooltip";
 import {
   Link,
   Copy,
@@ -66,7 +67,9 @@ function formatDate(iso: string): string {
 
 function FileIcon({ mime_type }: { mime_type: string }) {
   if (mime_type.startsWith("image/"))
-    return <ImageIcon size={18} className="text-purple-500 dark:text-purple-400" />;
+    return (
+      <ImageIcon size={18} className="text-purple-500 dark:text-purple-400" />
+    );
   if (mime_type.startsWith("text/"))
     return <FileText size={18} className="text-gray-500 dark:text-gray-400" />;
   if (
@@ -74,9 +77,16 @@ function FileIcon({ mime_type }: { mime_type: string }) {
     mime_type.includes("excel") ||
     mime_type.includes("csv")
   )
-    return <FileSpreadsheet size={18} className="text-green-600 dark:text-green-400" />;
+    return (
+      <FileSpreadsheet
+        size={18}
+        className="text-green-600 dark:text-green-400"
+      />
+    );
   if (mime_type.includes("presentation") || mime_type.includes("powerpoint"))
-    return <FileText size={18} className="text-orange-500 dark:text-orange-400" />;
+    return (
+      <FileText size={18} className="text-orange-500 dark:text-orange-400" />
+    );
   if (mime_type === "application/pdf")
     return <FileText size={18} className="text-red-500 dark:text-red-400" />;
   return <File size={18} className="text-gray-400 dark:text-gray-500" />;
@@ -116,86 +126,129 @@ export default function SharedPage() {
           </div>
         </div>
       ) : (
-        <div className="rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-gray-200 text-left text-xs font-medium text-gray-500 dark:border-gray-800 dark:text-gray-400">
-                <th className="px-5 py-3 font-medium">File</th>
-                <th className="hidden px-5 py-3 font-medium md:table-cell">
-                  Size
-                </th>
-                <th className="px-5 py-3 font-medium">Public Link</th>
-                <th className="hidden px-5 py-3 font-medium sm:table-cell">
-                  Created
-                </th>
-                <th className="px-5 py-3 font-medium">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {mockSharedItems.map((item) => (
-                <tr
-                  key={item.id}
-                  className="border-b border-gray-50 hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-gray-800"
-                >
-                  <td className="px-5 py-3">
-                    <div className="flex items-center gap-3">
-                      <FileIcon mime_type={item.mime_type} />
-                      <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                        {item.file_name}
-                      </span>
-                    </div>
-                  </td>
-                  <td className="hidden px-5 py-3 text-sm text-gray-500 dark:text-gray-400 md:table-cell">
-                    {formatSize(item.size_bytes)}
-                  </td>
-                  <td className="max-w-[180px] px-5 py-3">
-                    <span className="block truncate text-xs text-gray-500 dark:text-gray-400">
-                      {item.public_url}
-                    </span>
-                  </td>
-                  <td className="hidden px-5 py-3 text-sm text-gray-500 dark:text-gray-400 sm:table-cell">
-                    {formatDate(item.created_at)}
-                  </td>
-                  <td className="px-5 py-3">
-                    <div className="flex items-center gap-1">
-                      <button
-                        className="inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-medium text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800"
-                        onClick={() => handleCopy(item.public_url, item.id)}
-                      >
-                        {copiedId === item.id ? (
-                          <>
-                            <Check size={13} className="text-green-600 dark:text-green-400" />
-                            Copied
-                          </>
-                        ) : (
-                          <>
-                            <Copy size={13} />
-                            Copy
-                          </>
-                        )}
-                      </button>
-                      <button
-                        className="inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
-                        onClick={() => {
-                          if (
-                            confirm(
-                              `Revoke public link for "${item.file_name}"?`,
-                            )
-                          ) {
-                            alert("Revoke coming soon");
-                          }
-                        }}
-                      >
-                        <XCircle size={13} />
-                        Revoke
-                      </button>
-                    </div>
-                  </td>
+        <Tooltip.Provider delayDuration={0}>
+          <div className="rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-gray-200 text-left text-xs font-medium text-gray-500 dark:border-gray-800 dark:text-gray-400">
+                  <th className="px-5 py-3 font-medium">File</th>
+                  <th className="hidden px-5 py-3 font-medium md:table-cell">
+                    Size
+                  </th>
+                  <th className="px-5 py-3 font-medium">Public Link</th>
+                  <th className="hidden px-5 py-3 font-medium sm:table-cell">
+                    Created
+                  </th>
+                  <th className="px-5 py-3 font-medium">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {mockSharedItems.map((item) => (
+                  <tr
+                    key={item.id}
+                    className="border-b border-gray-50 hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-gray-800"
+                  >
+                    <td className="px-5 py-3">
+                      <div className="flex items-center gap-3">
+                        <FileIcon mime_type={item.mime_type} />
+                        <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                          {item.file_name}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="hidden px-5 py-3 text-sm text-gray-500 dark:text-gray-400 md:table-cell">
+                      {formatSize(item.size_bytes)}
+                    </td>
+                  <td className="max-w-[180px] px-5 py-3">
+                    <Tooltip.Root>
+                      <Tooltip.Trigger asChild>
+                        <span className="block truncate text-xs text-gray-500 dark:text-gray-400">
+                          {item.public_url}
+                        </span>
+                      </Tooltip.Trigger>
+                      <Tooltip.Portal>
+                        <Tooltip.Content
+                          side="top"
+                          sideOffset={4}
+                          className="max-w-[320px] break-all rounded-md bg-white px-2.5 py-1 text-xs text-gray-900 shadow-lg dark:bg-gray-700 dark:text-gray-100"
+                        >
+                          {item.public_url}
+                          <Tooltip.Arrow className="fill-white dark:fill-gray-700" />
+                        </Tooltip.Content>
+                      </Tooltip.Portal>
+                    </Tooltip.Root>
+                  </td>
+                    <td className="hidden px-5 py-3 text-sm text-gray-500 dark:text-gray-400 sm:table-cell">
+                      {formatDate(item.created_at)}
+                    </td>
+                    <td className="px-5 py-3">
+                      <div className="flex items-center gap-0.5">
+                        <Tooltip.Root>
+                          <Tooltip.Trigger asChild>
+                            <button
+                              className="rounded p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-gray-300"
+                              onClick={() =>
+                                handleCopy(item.public_url, item.id)
+                              }
+                            >
+                              {copiedId === item.id ? (
+                                <Check
+                                  size={15}
+                                  className="text-green-600 dark:text-green-400"
+                                />
+                              ) : (
+                                <Copy size={15} />
+                              )}
+                            </button>
+                          </Tooltip.Trigger>
+                          <Tooltip.Portal>
+                            <Tooltip.Content
+                              side="top"
+                              sideOffset={4}
+                              className="rounded-md bg-white px-2.5 py-1 text-xs text-gray-900 shadow-lg dark:bg-gray-700 dark:text-gray-100"
+                            >
+                              {copiedId === item.id ? "Copied" : "Copy"}
+                              <Tooltip.Arrow className="fill-white dark:fill-gray-700" />
+                            </Tooltip.Content>
+                          </Tooltip.Portal>
+                        </Tooltip.Root>
+
+                        <Tooltip.Root>
+                          <Tooltip.Trigger asChild>
+                            <button
+                              className="rounded p-1.5 text-gray-400 hover:bg-gray-100 hover:text-red-600 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-red-400"
+                              onClick={() => {
+                                if (
+                                  confirm(
+                                    `Revoke public link for "${item.file_name}"?`,
+                                  )
+                                ) {
+                                  alert("Revoke coming soon");
+                                }
+                              }}
+                            >
+                              <XCircle size={15} />
+                            </button>
+                          </Tooltip.Trigger>
+                          <Tooltip.Portal>
+                            <Tooltip.Content
+                              side="top"
+                              sideOffset={4}
+                              className="rounded-md bg-white px-2.5 py-1 text-xs text-gray-900 shadow-lg dark:bg-gray-700 dark:text-gray-100"
+                            >
+                              Revoke
+                              <Tooltip.Arrow className="fill-white dark:fill-gray-700" />
+                            </Tooltip.Content>
+                          </Tooltip.Portal>
+                        </Tooltip.Root>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Tooltip.Provider>
       )}
     </div>
   );
