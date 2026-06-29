@@ -3,6 +3,7 @@
 import { useAtom } from "jotai";
 import { ApiError, authApi } from "@/lib/api/api-call";
 import { accessTokenAtom } from "@/lib/atoms/auth-atoms";
+import { invalidateAuth } from "@/components/provider/auth-provider";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -25,6 +26,7 @@ export default function LoginPage() {
         password: password,
       });
       setToken(res.data.access_token);
+      invalidateAuth();
       router.replace("/home");
     } catch (err) {
       if (err instanceof ApiError) {

@@ -7,7 +7,7 @@ const store = getDefaultStore();
 
 let refreshLock: Promise<boolean> | null = null;
 
-async function doRefresh(signal?: AbortSignal): Promise<boolean> {
+async function doRefresh(signal?: AbortSignal | null): Promise<boolean> {
   if (refreshLock) return refreshLock;
 
   refreshLock = (async () => {

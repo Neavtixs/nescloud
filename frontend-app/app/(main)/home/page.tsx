@@ -3,20 +3,24 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAtom } from "jotai";
-import { userAtom } from "@/lib/atoms/auth-atoms";
+import { isAuthLoadingAtom, userAtom } from "@/lib/atoms/auth-atoms";
 import { authApi } from "@/lib/api/api-call";
+import { invalidateAuth } from "@/components/provider/auth-provider";
 import Link from "next/link";
 
 export default function HomePage() {
   const router = useRouter();
   const [user, setUser] = useAtom(userAtom);
+  const [loading] = useAtom(isAuthLoadingAtom);
   const [isReloading, setIsReloading] = useState(false);
 
   async function handleLogout() {
-    await fetch("/api/auth/logout", {
-      method: "POST",
-    });
-    router.push("/login");
+    try {
+      await authApi.logout();
+    } finally {
+      invalidateAuth();
+      router.replace("/login");
+    }
   }
 
   async function handleReload() {
@@ -39,6 +43,7 @@ export default function HomePage() {
         </button>
       </div>
       <div>
+        {loading && <div>load,,,,</div>}
         {user && (
           <div>
             <p>Nama: {user.name}</p>
@@ -52,9 +57,6 @@ export default function HomePage() {
         <button onClick={handleLogout}>Logout</button>
         <div>
           <Link href={"/drive"}>go drive</Link>
-        </div>
-        <div>
-          <Link href={"/test-concurrent"}>go test</Link>
         </div>
       </div>
     </div>

@@ -1,37 +1,52 @@
 "use client";
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { useAtom } from "jotai";
+import { Suspense, use, useEffect } from "react";
+import { useSetAtom } from "jotai";
 import { userAtom, isAuthLoadingAtom } from "@/lib/atoms/auth-atoms";
-import { ApiError, authApi } from "@/lib/api/api-call";
+import { authApi } from "@/lib/api/api-call";
+import type { UserData } from "@/lib/atoms/auth-atoms";
 
-export default function AuthProvider({ children }: { children: React.ReactNode }) {
-  const router = useRouter();
-  const [, setUser] = useAtom(userAtom);
-  const [isLoading, setIsLoading] = useAtom(isAuthLoadingAtom);
+let userPromise: Promise<UserData | null> | null = null;
+
+function getUserPromise() {
+  if (!userPromise) {
+    userPromise = authApi
+      .me()
+      .then((res) => res.data)
+      .catch(() => null);
+  }
+  return userPromise;
+}
+
+export function invalidateAuth() {
+  userPromise = null;
+}
+
+function AuthGate({ children }: { children: React.ReactNode }) {
+  const user = use(getUserPromise());
+  const setUser = useSetAtom(userAtom);
+  const setIsLoading = useSetAtom(isAuthLoadingAtom);
 
   useEffect(() => {
-    const controller = new AbortController();
-
-    async function validate() {
-      try {
-        const res = await authApi.me({ signal: controller.signal });
-        setUser(res.data);
-      } catch (err) {
-        if (err instanceof ApiError && err.status === 401) {
-        }
-      } finally {
-        setIsLoading(false);
-      }
-    }
-
-    validate();
-
-    return () => controller.abort();
-  }, [router, setUser, setIsLoading]);
-
-  if (isLoading) return <div>Loading...</div>;
+    setUser(user);
+    setIsLoading(false);
+  }, [user, setUser, setIsLoading]);
 
   return <>{children}</>;
+}
+
+function LoadingFallback() {
+  return <div>Loading...fall</div>;
+}
+
+export default function AuthProvider({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <Suspense fallback={<LoadingFallback />}>
+      <AuthGate>{children}</AuthGate>
+    </Suspense>
+  );
 }
