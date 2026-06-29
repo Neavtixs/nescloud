@@ -5,6 +5,40 @@ import { ApiResponse } from "./api-response";
 
 const store = getDefaultStore();
 
+let refreshLock: Promise<boolean> | null = null;
+
+async function doRefresh(signal?: AbortSignal): Promise<boolean> {
+  if (refreshLock) return refreshLock;
+
+  refreshLock = (async () => {
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_HOST_API}/api/auth/refresh`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          signal,
+        },
+      );
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.data?.access_token) {
+          store.set(accessTokenAtom, data.data.access_token);
+        }
+        return true;
+      }
+
+      return false;
+    } finally {
+      refreshLock = null;
+    }
+  })();
+
+  return refreshLock;
+}
+
 export class ApiError extends Error {
   status: number;
 
@@ -15,7 +49,12 @@ export class ApiError extends Error {
   }
 }
 
-async function request<T>(path: string, options?: RequestInit): Promise<T> {
+async function request<T>(
+  path: string,
+  options?: RequestInit & { needsAuth?: boolean },
+  _retryCount = 0,
+): Promise<T> {
+  const { needsAuth = true, signal } = options ?? {};
   const token = store.get(accessTokenAtom);
 
   const headers: Record<string, string> = {
@@ -23,35 +62,23 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
     ...(options?.headers as Record<string, string>),
   };
 
-  if (token) {
+  if (needsAuth && token) {
     headers.Authorization = `Bearer ${token}`;
   }
 
   const res = await fetch(`${process.env.NEXT_PUBLIC_HOST_API}/api${path}`, {
     headers,
     credentials: "include",
+    signal,
     ...options,
   });
 
   const data = await res.json();
-  console.log(data + res.status);
-  if (res.status === 401) {
-    console.log("401" + data);
-    const refreshRes = await fetch(
-      `${process.env.NEXT_PUBLIC_HOST_API}/api/auth/refresh`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-      },
-    );
+  if (needsAuth && res.status === 401 && _retryCount < 1) {
+    const refreshed = await doRefresh(signal);
 
-    if (refreshRes.ok) {
-      const refreshData = await refreshRes.json();
-      if (refreshData.data?.access_token) {
-        store.set(accessTokenAtom, refreshData.data.access_token);
-      }
-      return request<T>(path, options);
+    if (refreshed) {
+      return request<T>(path, options, _retryCount + 1);
     }
 
     if (typeof window !== "undefined") {
@@ -59,7 +86,6 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
     }
     throw new ApiError("Session expired", 401);
   }
-  console.log("lewwat ");
 
   if (!res.ok) {
     throw new ApiError(data.message ?? "Something went wrong", res.status);
@@ -69,27 +95,61 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 }
 
 export const api = {
-  get: <T>(path: string) => request<T>(path),
-  post: <T>(path: string, body: unknown) =>
-    request<T>(path, { method: "POST", body: JSON.stringify(body) }),
-  put: <T>(path: string, body: unknown) =>
-    request<T>(path, { method: "PUT", body: JSON.stringify(body) }),
-  patch: <T>(path: string, body: unknown) =>
-    request<T>(path, { method: "PATCH", body: JSON.stringify(body) }),
-  delete: <T>(path: string) => request<T>(path, { method: "DELETE" }),
+  get: <T>(path: string, options?: RequestInit & { needsAuth?: boolean }) =>
+    request<T>(path, { ...options, method: "GET" }),
+  post: <T>(
+    path: string,
+    body: unknown,
+    options?: RequestInit & { needsAuth?: boolean },
+  ) =>
+    request<T>(path, {
+      method: "POST",
+      body: JSON.stringify(body),
+      ...options,
+    }),
+  put: <T>(
+    path: string,
+    body: unknown,
+    options?: RequestInit & { needsAuth?: boolean },
+  ) =>
+    request<T>(path, { method: "PUT", body: JSON.stringify(body), ...options }),
+  patch: <T>(
+    path: string,
+    body: unknown,
+    options?: RequestInit & { needsAuth?: boolean },
+  ) =>
+    request<T>(path, {
+      method: "PATCH",
+      body: JSON.stringify(body),
+      ...options,
+    }),
+  delete: <T>(path: string, options?: RequestInit & { needsAuth?: boolean }) =>
+    request<T>(path, { ...options, method: "DELETE" }),
 };
 
 type AuthData = { access_token: string };
 
 export const authApi = {
-  login: (body: { email: string; password: string }) =>
-    api.post<ApiResponse<AuthData>>("/auth/login", body),
-  register: (body: { name: string; email: string; password: string }) =>
-    api.post<ApiResponse<AuthData>>("/auth/register", body),
-  me: () => api.get<ApiResponse<UserData>>("/auth/me"),
-  logout: () => {
+  login: (
+    body: { email: string; password: string },
+    options?: RequestInit & { needsAuth?: boolean },
+  ) =>
+    api.post<ApiResponse<AuthData>>("/auth/login", body, {
+      ...options,
+      needsAuth: false,
+    }),
+  register: (
+    body: { name: string; email: string; password: string },
+    options?: RequestInit & { needsAuth?: boolean },
+  ) =>
+    api.post<ApiResponse<AuthData>>("/auth/register", body, {
+      ...options,
+      needsAuth: false,
+    }),
+  me: (options?: RequestInit & { needsAuth?: boolean }) =>
+    api.get<ApiResponse<UserData>>("/auth/me", options),
+  logout: (options?: RequestInit & { needsAuth?: boolean }) => {
     store.set(accessTokenAtom, null);
-    return api.post<ApiResponse<null>>("/auth/logout", {});
+    return api.post<ApiResponse<null>>("/auth/logout", {}, options);
   },
-  refresh: () => api.post<ApiResponse<AuthData>>("/auth/refresh", {}),
 };

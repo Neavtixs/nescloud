@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAtom } from "jotai";
 import { userAtom } from "@/lib/atoms/auth-atoms";
 import { authApi } from "@/lib/api/api-call";
+import Link from "next/link";
 
 export default function HomePage() {
   const router = useRouter();
@@ -49,6 +50,12 @@ export default function HomePage() {
         )}
 
         <button onClick={handleLogout}>Logout</button>
+        <div>
+          <Link href={"/drive"}>go drive</Link>
+        </div>
+        <div>
+          <Link href={"/test-concurrent"}>go test</Link>
+        </div>
       </div>
     </div>
   );
