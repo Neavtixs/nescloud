@@ -116,7 +116,7 @@ func (h *Handler) LoginHandler(c *gin.Context) {
 
 	log.Info("login success")
 
-	c.SetCookie("refresh_token", result.RefreshToken, result.RefreshExpiresIn*2, "/", "", false, true)
+	c.SetCookie("refresh_token", result.RefreshToken, result.RefreshExpiresIn, "/", "", false, true)
 
 	c.JSON(http.StatusOK, dto.ResponseWeb[dto.AuthLoginRes]{
 		Message: "login user success",
@@ -159,7 +159,7 @@ func (h *Handler) RefreshHandler(c *gin.Context) {
 
 	log.Info("refresh success")
 
-	c.SetCookie("refresh_token", result.RefreshToken, result.RefreshExpiresIn*2, "/", "", false, true)
+	c.SetCookie("refresh_token", result.RefreshToken, result.RefreshExpiresIn, "/", "", false, true)
 
 	c.JSON(http.StatusOK, dto.ResponseWeb[dto.AuthRefreshRes]{
 		Message: "token refreshed",
