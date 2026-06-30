@@ -1,6 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useCallback, useState } from "react";
+import { useAtom } from "jotai";
+import { api } from "@/lib/api/api-call";
+import type { ApiResponse, PaginatedResponse } from "@/lib/api/api-response";
+import { foldersAtom, type FolderItem } from "@/lib/atoms/folder-atoms";
 import {
   Folder,
   File,
@@ -19,6 +23,8 @@ import {
   Home,
   LayoutGrid,
   List,
+  X,
+  Loader2,
 } from "lucide-react";
 
 type ItemType = "folder" | "file";
@@ -32,25 +38,7 @@ type DriveItem = {
   modified_at: string;
 };
 
-const mockItems: DriveItem[] = [
-  {
-    id: "d1",
-    type: "folder",
-    name: "Documents",
-    modified_at: "2026-06-28T14:30:00Z",
-  },
-  {
-    id: "d2",
-    type: "folder",
-    name: "Photos",
-    modified_at: "2026-06-27T11:15:00Z",
-  },
-  {
-    id: "d3",
-    type: "folder",
-    name: "Work",
-    modified_at: "2026-06-25T09:00:00Z",
-  },
+const mockFiles: DriveItem[] = [
   {
     id: "f1",
     type: "file",
@@ -131,9 +119,13 @@ function FileIcon({ mime_type }: { mime_type: string }) {
 function ItemMenu({
   type,
   onClose,
+  onRenameFolder,
+  onDeleteFolder,
 }: {
   type: ItemType;
   onClose: () => void;
+  onRenameFolder?: () => void;
+  onDeleteFolder?: () => void;
 }) {
   return (
     <>
@@ -155,7 +147,11 @@ function ItemMenu({
           className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800"
           onClick={() => {
             onClose();
-            alert("Rename coming soon");
+            if (type === "folder" && onRenameFolder) {
+              onRenameFolder();
+            } else {
+              alert("Rename coming soon");
+            }
           }}
         >
           <Pencil size={14} />
@@ -177,7 +173,11 @@ function ItemMenu({
           className="flex w-full items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
           onClick={() => {
             onClose();
-            alert("Delete coming soon");
+            if (type === "folder" && onDeleteFolder) {
+              onDeleteFolder();
+            } else {
+              alert("Delete coming soon");
+            }
           }}
         >
           <Trash2 size={14} />
@@ -188,23 +188,191 @@ function ItemMenu({
   );
 }
 
+const FILE_LIMIT = 20;
+
 export default function DrivePage() {
   const [search, setSearch] = useState("");
   const [viewMode, setViewMode] = useState<"list" | "grid">("list");
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [folders, setFolders] = useAtom(foldersAtom);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [newFolderName, setNewFolderName] = useState("");
+  const [isCreating, setIsCreating] = useState(false);
+  const [createError, setCreateError] = useState("");
+  const [filePage, setFilePage] = useState(1);
+
+  const [showRenameModal, setShowRenameModal] = useState(false);
+  const [renameTarget, setRenameTarget] = useState<{ id: string; name: string } | null>(null);
+  const [renameValue, setRenameValue] = useState("");
+  const [isRenaming, setIsRenaming] = useState(false);
+  const [renameError, setRenameError] = useState("");
+
+  useEffect(() => {
+    api
+      .get<PaginatedResponse<FolderItem>>("/folders?parent_folder_id=&limit=999")
+      .then((res) => {
+        setFolders(res.data);
+      })
+      .catch(() => {});
+  }, []);
+
+  const fileTotal = mockFiles.length;
+  const fileTotalPages = Math.max(1, Math.ceil(fileTotal / FILE_LIMIT));
+
+  const paginatedFiles = useMemo(() => {
+    const offset = (filePage - 1) * FILE_LIMIT;
+    return mockFiles.slice(offset, offset + FILE_LIMIT);
+  }, [filePage]);
+
+  const items = useMemo(() => {
+    const folderItems: DriveItem[] = folders.map((f) => ({
+      id: f.id,
+      type: "folder" as const,
+      name: f.name,
+      modified_at: f.updated_at,
+    }));
+
+    const all = [...folderItems, ...paginatedFiles];
+
+    const filtered = search
+      ? all.filter((item) =>
+          item.name.toLowerCase().includes(search.toLowerCase()),
+        )
+      : all;
+
+    return filtered.sort((a, b) => {
+      if (a.type !== b.type) return a.type === "folder" ? -1 : 1;
+      return a.name.localeCompare(b.name);
+    });
+  }, [folders, paginatedFiles, search]);
+
+  const handleSearch = useCallback((value: string) => {
+    setSearch(value);
+    setFilePage(1);
+  }, []);
+
+  const goToPage = useCallback(
+    (page: number) => {
+      if (page >= 1 && page <= fileTotalPages) {
+        setFilePage(page);
+      }
+    },
+    [fileTotalPages],
+  );
+
+  const pageNumbers = useMemo(() => {
+    const pages: number[] = [];
+    if (fileTotalPages <= 7) {
+      for (let i = 1; i <= fileTotalPages; i++) pages.push(i);
+    } else {
+      pages.push(1);
+      if (filePage > 3) pages.push(-1);
+      const start = Math.max(2, filePage - 1);
+      const end = Math.min(fileTotalPages - 1, filePage + 1);
+      for (let i = start; i <= end; i++) pages.push(i);
+      if (filePage < fileTotalPages - 2) pages.push(-1);
+      pages.push(fileTotalPages);
+    }
+    return pages;
+  }, [filePage, fileTotalPages]);
 
   const breadcrumb = [{ label: "My Drive", href: "/drive" }];
 
-  const filtered = search
-    ? mockItems.filter((item) =>
-        item.name.toLowerCase().includes(search.toLowerCase()),
-      )
-    : mockItems;
+  const handleCreateFolder = useCallback(async () => {
+    setCreateError("");
+    setIsCreating(true);
 
-  const sorted = [...filtered].sort((a, b) => {
-    if (a.type !== b.type) return a.type === "folder" ? -1 : 1;
-    return a.name.localeCompare(b.name);
-  });
+    try {
+      const res = await api.post<ApiResponse<{ id: string }>>("/folders", {
+        parent_folder_id: "",
+        name: newFolderName.trim(),
+      });
+
+      const newFolder: FolderItem = {
+        id: res.data.id,
+        name: newFolderName.trim(),
+        parent_folder_id: "",
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+
+      setFolders((prev) => [newFolder, ...prev]);
+      setShowCreateModal(false);
+      setNewFolderName("");
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "Failed to create folder";
+      setCreateError(message);
+    } finally {
+      setIsCreating(false);
+    }
+  }, [newFolderName, setFolders]);
+
+  const handleCancelCreate = useCallback(() => {
+    setShowCreateModal(false);
+    setNewFolderName("");
+    setCreateError("");
+  }, []);
+
+  const openRenameModal = useCallback((id: string, name: string) => {
+    setRenameTarget({ id, name });
+    setRenameValue(name);
+    setShowRenameModal(true);
+  }, []);
+
+  const handleRenameFolder = useCallback(async () => {
+    if (!renameTarget) return;
+    setRenameError("");
+    setIsRenaming(true);
+
+    try {
+      await api.patch<ApiResponse<{ id: string; name: string }>>(
+        `/folders/${renameTarget.id}`,
+        { name: renameValue.trim() },
+      );
+
+      setFolders((prev) =>
+        prev.map((f) =>
+          f.id === renameTarget.id
+            ? { ...f, name: renameValue.trim(), updated_at: new Date().toISOString() }
+            : f,
+        ),
+      );
+      setShowRenameModal(false);
+      setRenameTarget(null);
+      setRenameValue("");
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "Failed to rename folder";
+      setRenameError(message);
+    } finally {
+      setIsRenaming(false);
+    }
+  }, [renameTarget, renameValue, setFolders]);
+
+  const handleCancelRename = useCallback(() => {
+    setShowRenameModal(false);
+    setRenameTarget(null);
+    setRenameValue("");
+    setRenameError("");
+  }, []);
+
+  const handleDeleteFolder = useCallback(
+    async (id: string, name: string) => {
+      if (!confirm(`Are you sure you want to move "${name}" to trash?`)) return;
+
+      try {
+        await api.delete<ApiResponse<null>>(`/folders/${id}`);
+
+        setFolders((prev) => prev.filter((f) => f.id !== id));
+      } catch (err: unknown) {
+        const message =
+          err instanceof Error ? err.message : "Failed to delete folder";
+        alert(message);
+      }
+    },
+    [setFolders],
+  );
 
   return (
     <div className="mx-auto max-w-5xl">
@@ -236,7 +404,7 @@ export default function DrivePage() {
             type="text"
             placeholder="Search files and folders..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => handleSearch(e.target.value)}
             className="w-full rounded-lg border border-gray-300 bg-white py-2 pl-9 pr-3 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 dark:focus:border-blue-500 dark:focus:ring-blue-800"
           />
         </div>
@@ -269,7 +437,7 @@ export default function DrivePage() {
         <div className="flex items-center gap-2">
           <button
             className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
-            onClick={() => alert("New folder coming soon")}
+            onClick={() => setShowCreateModal(true)}
           >
             <FolderPlus size={16} />
             New Folder
@@ -284,7 +452,7 @@ export default function DrivePage() {
         </div>
       </div>
 
-      {sorted.length === 0 ? (
+      {items.length === 0 ? (
         <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-gray-300 bg-white py-16 dark:border-gray-700 dark:bg-gray-900">
           <Folder size={40} className="text-gray-300 dark:text-gray-600" />
           <div className="text-center">
@@ -300,10 +468,10 @@ export default function DrivePage() {
           {!search && (
             <button
               className="mt-2 inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600"
-              onClick={() => alert("Upload coming soon")}
+              onClick={() => setShowCreateModal(true)}
             >
-              <Upload size={16} />
-              Upload Files
+              <FolderPlus size={16} />
+              Create Folder
             </button>
           )}
         </div>
@@ -329,7 +497,7 @@ export default function DrivePage() {
               </tr>
             </thead>
             <tbody>
-              {sorted.map((item) => (
+              {items.map((item) => (
                 <tr
                   key={item.id}
                   className="border-b border-gray-50 hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-gray-800"
@@ -386,6 +554,16 @@ export default function DrivePage() {
                       <ItemMenu
                         type={item.type}
                         onClose={() => setOpenMenuId(null)}
+                        onRenameFolder={
+                          item.type === "folder"
+                            ? () => openRenameModal(item.id, item.name)
+                            : undefined
+                        }
+                        onDeleteFolder={
+                          item.type === "folder"
+                            ? () => handleDeleteFolder(item.id, item.name)
+                            : undefined
+                        }
                       />
                     )}
                   </td>
@@ -396,34 +574,54 @@ export default function DrivePage() {
 
           <div className="flex items-center justify-between border-t border-gray-200 px-5 py-3 dark:border-gray-800">
             <p className="text-xs text-gray-500 dark:text-gray-400">
-              1–{sorted.length} of {mockItems.length} items
+              {fileTotal === 0
+                ? `${folders.length} folder${folders.length !== 1 ? "s" : ""}`
+                : `${(filePage - 1) * FILE_LIMIT + 1}–${Math.min(filePage * FILE_LIMIT, fileTotal)} of ${fileTotal} files`}
+              {folders.length > 0 && fileTotal > 0 && " · "}
+              {folders.length > 0 && `${folders.length} folder${folders.length !== 1 ? "s" : ""}`}
             </p>
-            <div className="flex items-center gap-1">
-              <button className="rounded px-2 py-1 text-xs text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-gray-300">
-                ←
-              </button>
-              <button className="rounded bg-blue-50 px-2 py-1 text-xs font-medium text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">
-                1
-              </button>
-              <button className="rounded px-2 py-1 text-xs text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800">
-                2
-              </button>
-              <button className="rounded px-2 py-1 text-xs text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800">
-                3
-              </button>
-              <span className="px-1 text-xs text-gray-400 dark:text-gray-500">...</span>
-              <button className="rounded px-2 py-1 text-xs text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800">
-                6
-              </button>
-              <button className="rounded px-2 py-1 text-xs text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-gray-300">
-                →
-              </button>
-            </div>
+            {fileTotalPages > 1 && (
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => goToPage(filePage - 1)}
+                  disabled={filePage <= 1}
+                  className="rounded px-2 py-1 text-xs text-gray-400 hover:bg-gray-100 hover:text-gray-600 disabled:cursor-not-allowed disabled:opacity-30 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-gray-300"
+                >
+                  ←
+                </button>
+                {pageNumbers.map((p, i) =>
+                  p === -1 ? (
+                    <span key={`ellipsis-${i}`} className="px-1 text-xs text-gray-400 dark:text-gray-500">
+                      ...
+                    </span>
+                  ) : (
+                    <button
+                      key={p}
+                      onClick={() => goToPage(p)}
+                      className={`rounded px-2 py-1 text-xs ${
+                        p === filePage
+                          ? "bg-blue-50 font-medium text-blue-600 dark:bg-blue-900/30 dark:text-blue-400"
+                          : "text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800"
+                      }`}
+                    >
+                      {p}
+                    </button>
+                  ),
+                )}
+                <button
+                  onClick={() => goToPage(filePage + 1)}
+                  disabled={filePage >= fileTotalPages}
+                  className="rounded px-2 py-1 text-xs text-gray-400 hover:bg-gray-100 hover:text-gray-600 disabled:cursor-not-allowed disabled:opacity-30 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-gray-300"
+                >
+                  →
+                </button>
+              </div>
+            )}
           </div>
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-          {sorted.map((item) => (
+          {items.map((item) => (
             <div
               key={item.id}
               className="group relative rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900"
@@ -449,6 +647,16 @@ export default function DrivePage() {
                   <ItemMenu
                     type={item.type}
                     onClose={() => setOpenMenuId(null)}
+                    onRenameFolder={
+                      item.type === "folder"
+                        ? () => openRenameModal(item.id, item.name)
+                        : undefined
+                    }
+                    onDeleteFolder={
+                      item.type === "folder"
+                        ? () => handleDeleteFolder(item.id, item.name)
+                        : undefined
+                    }
                   />
                 )}
               </div>
@@ -476,6 +684,138 @@ export default function DrivePage() {
               </p>
             </div>
           ))}
+        </div>
+      )}
+
+      {showCreateModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="w-full max-w-md rounded-xl border border-gray-200 bg-white p-6 shadow-xl dark:border-gray-700 dark:bg-gray-900">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                Create Folder
+              </h2>
+              <button
+                onClick={handleCancelCreate}
+                className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-gray-300"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="mb-4">
+              <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Folder Name
+              </label>
+              <input
+                type="text"
+                value={newFolderName}
+                onChange={(e) => setNewFolderName(e.target.value)}
+                placeholder="Enter folder name"
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && newFolderName.trim() && !isCreating) {
+                    handleCreateFolder();
+                  }
+                }}
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 dark:focus:border-blue-500 dark:focus:ring-blue-800"
+              />
+            </div>
+
+            {createError && (
+              <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400">
+                {createError}
+              </div>
+            )}
+
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={handleCancelCreate}
+                className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCreateFolder}
+                disabled={!newFolderName.trim() || isCreating}
+                className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-blue-700 dark:hover:bg-blue-600"
+              >
+                {isCreating ? (
+                  <>
+                    <Loader2 size={16} className="animate-spin" />
+                    Creating...
+                  </>
+                ) : (
+                  <>Create</>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showRenameModal && renameTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="w-full max-w-md rounded-xl border border-gray-200 bg-white p-6 shadow-xl dark:border-gray-700 dark:bg-gray-900">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                Rename Folder
+              </h2>
+              <button
+                onClick={handleCancelRename}
+                className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-gray-300"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="mb-4">
+              <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Folder Name
+              </label>
+              <input
+                type="text"
+                value={renameValue}
+                onChange={(e) => setRenameValue(e.target.value)}
+                placeholder="Enter folder name"
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && renameValue.trim() && !isRenaming) {
+                    handleRenameFolder();
+                  }
+                }}
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 dark:focus:border-blue-500 dark:focus:ring-blue-800"
+              />
+            </div>
+
+            {renameError && (
+              <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400">
+                {renameError}
+              </div>
+            )}
+
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={handleCancelRename}
+                className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleRenameFolder}
+                disabled={!renameValue.trim() || isRenaming}
+                className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-blue-700 dark:hover:bg-blue-600"
+              >
+                {isRenaming ? (
+                  <>
+                    <Loader2 size={16} className="animate-spin" />
+                    Renaming...
+                  </>
+                ) : (
+                  <>Rename</>
+                )}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
