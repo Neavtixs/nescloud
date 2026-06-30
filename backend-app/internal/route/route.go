@@ -1,10 +1,12 @@
 package route
 
 import (
-	"nescloud/backend-app/internal/apps/feature/auth"
-	"nescloud/backend-app/internal/middleware"
 	"os"
 	"strings"
+
+	"nescloud/backend-app/internal/apps/feature/auth"
+	"nescloud/backend-app/internal/apps/feature/folder"
+	"nescloud/backend-app/internal/middleware"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -12,12 +14,13 @@ import (
 )
 
 type Handler struct {
-	Auth *auth.Handler
-	Log  *logrus.Logger
+	Auth   *auth.Handler
+	Folder *folder.Handler
+	Log    *logrus.Logger
 }
 
-func NewHandler(auth *auth.Handler, log *logrus.Logger) *Handler {
-	return &Handler{Auth: auth, Log: log}
+func NewHandler(auth *auth.Handler, folder *folder.Handler, log *logrus.Logger) *Handler {
+	return &Handler{Auth: auth, Folder: folder, Log: log}
 }
 
 func (h *Handler) SetupRoute(app *gin.Engine) {
@@ -41,5 +44,19 @@ func (h *Handler) SetupRoute(app *gin.Engine) {
 	{
 		user.POST("/auth/logout", h.Auth.LogoutHandler)
 		user.GET("/auth/me", h.Auth.MeHandler)
+
+		folders := user.Group("/folders")
+		{
+			folders.POST("", h.Folder.CreateFolderHandler)
+			folders.GET("", h.Folder.ListFoldersHandler)
+			folders.PATCH("/:id", h.Folder.UpdateFolderHandler)
+			folders.DELETE("/:id", h.Folder.DeleteFolderHandler)
+		}
+
+		trash := user.Group("/trash")
+		{
+			trash.POST("/folders/:id/restore", h.Folder.RestoreFolderHandler)
+			trash.DELETE("/folders/:id", h.Folder.PermanentDeleteFolderHandler)
+		}
 	}
 }

@@ -33,7 +33,7 @@ func InitDependencies(db *sql.DB, rdb *redis.Client, validate *validator.Validat
 	authHandler := auth.NewHandler(authService, validate, log)
 
 	folderService := folder.NewService(db, folderRepo)
-	_ = folder.NewHandler(folderService, validate, log)
+	folderHandler := folder.NewHandler(folderService, validate, log)
 
 	fileService := file.NewService(db, fileRepo, quotaRepo, store)
 	_ = file.NewHandler(fileService, validate, log)
@@ -46,5 +46,5 @@ func InitDependencies(db *sql.DB, rdb *redis.Client, validate *validator.Validat
 
 	_ = auditLogRepo
 
-	return route.NewHandler(authHandler, log)
+	return route.NewHandler(authHandler, folderHandler, log)
 }

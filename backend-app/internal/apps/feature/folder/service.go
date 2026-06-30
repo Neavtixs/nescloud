@@ -2,8 +2,15 @@ package folder
 
 import (
 	"database/sql"
+	"math"
+	"time"
 
+	"nescloud/backend-app/internal/apps/domain/entity"
 	"nescloud/backend-app/internal/apps/domain/repository"
+	"nescloud/backend-app/internal/dto"
+	"nescloud/backend-app/internal/errs"
+
+	"github.com/google/uuid"
 )
 
 type Service struct {
@@ -16,4 +23,227 @@ func NewService(db *sql.DB, folderRepo *repository.FolderRepo) *Service {
 		DB:         db,
 		FolderRepo: folderRepo,
 	}
+}
+
+func (s *Service) Create(input *dto.InputCreateFolder) (*dto.ResultFolder, error) {
+	tx, err := s.DB.BeginTx(input.Ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+
+	now := time.Now()
+	folderID := uuid.NewString()
+
+	var parentID *string
+	if input.ParentFolderID != "" {
+		parentID = &input.ParentFolderID
+	}
+
+	folder := &entity.Folder{
+		ID:             folderID,
+		OwnerID:        input.OwnerID,
+		ParentFolderID: parentID,
+		Name:           input.Name,
+		DeletedAt:      nil,
+		CreatedAt:      now,
+		UpdatedAt:      now,
+	}
+
+	if err := s.FolderRepo.Insert(tx, input.Ctx, folder); err != nil {
+		return nil, err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, err
+	}
+
+	return &dto.ResultFolder{
+		ID:             folderID,
+		Name:           input.Name,
+		ParentFolderID: input.ParentFolderID,
+		CreatedAt:      now.Format(time.RFC3339),
+		UpdatedAt:      now.Format(time.RFC3339),
+	}, nil
+}
+
+func (s *Service) List(input *dto.InputListFolders) (*dto.ResultListFolders, error) {
+	tx, err := s.DB.BeginTx(input.Ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+
+	page := input.Page
+	if page < 1 {
+		page = 1
+	}
+	limit := input.Limit
+	if limit < 1 || limit > 100 {
+		limit = 20
+	}
+	offset := (page - 1) * limit
+
+	var parentID *string
+	if input.ParentFolderID != "" {
+		parentID = &input.ParentFolderID
+	}
+
+	folders, total, err := s.FolderRepo.FindByOwnerID(tx, input.Ctx, input.OwnerID, parentID, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, err
+	}
+
+	totalPages := 0
+	if limit > 0 {
+		totalPages = int(math.Ceil(float64(total) / float64(limit)))
+	}
+
+	var resultFolders []dto.ResultFolder
+	for _, f := range folders {
+		var parentID string
+		if f.ParentFolderID != nil {
+			parentID = *f.ParentFolderID
+		}
+		resultFolders = append(resultFolders, dto.ResultFolder{
+			ID:             f.ID,
+			Name:           f.Name,
+			ParentFolderID: parentID,
+			CreatedAt:      f.CreatedAt.Format(time.RFC3339),
+			UpdatedAt:      f.UpdatedAt.Format(time.RFC3339),
+		})
+	}
+
+	if resultFolders == nil {
+		resultFolders = []dto.ResultFolder{}
+	}
+
+	return &dto.ResultListFolders{
+		Folders: resultFolders,
+		Pagination: dto.ResultPagination{
+			Page:       page,
+			Limit:      limit,
+			Total:      total,
+			TotalPages: totalPages,
+		},
+	}, nil
+}
+
+func (s *Service) Update(input *dto.InputUpdateFolder) (*dto.ResultFolder, error) {
+	tx, err := s.DB.BeginTx(input.Ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+
+	folder, err := s.FolderRepo.FindByID(tx, input.Ctx, input.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	if folder.OwnerID != input.OwnerID {
+		return nil, errs.ErrDataNotFound
+	}
+
+	if err := s.FolderRepo.UpdateName(tx, input.Ctx, input.ID, input.Name); err != nil {
+		return nil, err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, err
+	}
+
+	return &dto.ResultFolder{
+		ID:   input.ID,
+		Name: input.Name,
+	}, nil
+}
+
+func (s *Service) Delete(input *dto.InputDeleteFolder) error {
+	tx, err := s.DB.BeginTx(input.Ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	folder, err := s.FolderRepo.FindByID(tx, input.Ctx, input.ID)
+	if err != nil {
+		return err
+	}
+
+	if folder.OwnerID != input.OwnerID {
+		return errs.ErrDataNotFound
+	}
+
+	if err := s.FolderRepo.SoftDelete(tx, input.Ctx, input.ID, time.Now()); err != nil {
+		return err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *Service) Restore(input *dto.InputRestoreFolder) error {
+	tx, err := s.DB.BeginTx(input.Ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	folder, err := s.FolderRepo.FindByID(tx, input.Ctx, input.ID)
+	if err != nil {
+		return err
+	}
+
+	if folder.OwnerID != input.OwnerID {
+		return errs.ErrDataNotFound
+	}
+
+	if folder.DeletedAt == nil {
+		return errs.ErrDataNotFound
+	}
+
+	if err := s.FolderRepo.Restore(tx, input.Ctx, input.ID); err != nil {
+		return err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *Service) PermanentDelete(input *dto.InputPermanentDeleteFolder) error {
+	tx, err := s.DB.BeginTx(input.Ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	folder, err := s.FolderRepo.FindByID(tx, input.Ctx, input.ID)
+	if err != nil {
+		return err
+	}
+
+	if folder.OwnerID != input.OwnerID {
+		return errs.ErrDataNotFound
+	}
+
+	if err := s.FolderRepo.HardDelete(tx, input.Ctx, input.ID); err != nil {
+		return err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return err
+	}
+
+	return nil
 }

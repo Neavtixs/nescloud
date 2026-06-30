@@ -35,6 +35,34 @@ type AuthRefreshRes struct {
 	AccessToken string `json:"access_token"`
 }
 
+type FolderCreateReq struct {
+	ParentFolderID string `json:"parent_folder_id"`
+	Name           string `json:"name" validate:"required,min=1,max=255"`
+}
+
+type FolderUpdateReq struct {
+	Name string `json:"name" validate:"required,min=1,max=255"`
+}
+
+type FolderRes struct {
+	ID             string `json:"id"`
+	Name           string `json:"name"`
+	ParentFolderID string `json:"parent_folder_id"`
+	CreatedAt      string `json:"created_at"`
+	UpdatedAt      string `json:"updated_at"`
+}
+
+type FolderIDRes struct {
+	ID string `json:"id"`
+}
+
+type PaginationRes struct {
+	Page       int `json:"page"`
+	Limit      int `json:"limit"`
+	Total      int `json:"total"`
+	TotalPages int `json:"total_pages"`
+}
+
 type ErrorWeb struct {
 	Message string      `json:"message"`
 	Errors  interface{} `json:"errors,omitempty"`
