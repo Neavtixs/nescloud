@@ -197,6 +197,38 @@ func (h *Handler) UpdateFolderHandler(c *gin.Context) {
 	})
 }
 
+func (h *Handler) ListTrashHandler(c *gin.Context) {
+	log := helper.NewLog(h.Log, c)
+	log.Info("list trash request received")
+
+	userID, _ := c.Get("user_id")
+	userIDStr, ok := userID.(string)
+	if !ok || userIDStr == "" {
+		log.Warn("invalid or missing user_id in context")
+		c.JSON(http.StatusUnauthorized, dto.ErrorWeb{Message: errs.ErrInvalidAccessToken.Error()})
+		return
+	}
+
+	input := &dto.InputListTrash{
+		Ctx:     c.Request.Context(),
+		OwnerID: userIDStr,
+	}
+
+	result, err := h.Service.ListTrash(input)
+	if err != nil {
+		log.WithField("layer", "folder_handler").Error(err)
+		c.JSON(http.StatusInternalServerError, dto.ErrorWeb{Message: errs.ErrInternal.Error()})
+		return
+	}
+
+	log.Info("trash items listed")
+
+	c.JSON(http.StatusOK, dto.ResponseWeb[[]dto.ResultTrashItem]{
+		Message: "success",
+		Data:    result,
+	})
+}
+
 func (h *Handler) DeleteFolderHandler(c *gin.Context) {
 	log := helper.NewLog(h.Log, c)
 	log.Info("delete folder request received")

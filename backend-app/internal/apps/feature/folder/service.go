@@ -163,6 +163,50 @@ func (s *Service) Update(input *dto.InputUpdateFolder) (*dto.ResultFolder, error
 	}, nil
 }
 
+func (s *Service) ListTrash(input *dto.InputListTrash) ([]dto.ResultTrashItem, error) {
+	tx, err := s.DB.BeginTx(input.Ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+
+	folders, err := s.FolderRepo.FindDeletedByOwnerID(tx, input.Ctx, input.OwnerID)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, err
+	}
+
+	var result []dto.ResultTrashItem
+	for _, f := range folders {
+		var parentID string
+		if f.ParentFolderID != nil {
+			parentID = *f.ParentFolderID
+		}
+		var deletedAt string
+		if f.DeletedAt != nil {
+			deletedAt = f.DeletedAt.Format(time.RFC3339)
+		}
+		result = append(result, dto.ResultTrashItem{
+			ID:             f.ID,
+			OwnerID:        f.OwnerID,
+			ParentFolderID: parentID,
+			Name:           f.Name,
+			DeletedAt:      deletedAt,
+			CreatedAt:      f.CreatedAt.Format(time.RFC3339),
+			UpdatedAt:      f.UpdatedAt.Format(time.RFC3339),
+		})
+	}
+
+	if result == nil {
+		result = []dto.ResultTrashItem{}
+	}
+
+	return result, nil
+}
+
 func (s *Service) Delete(input *dto.InputDeleteFolder) error {
 	tx, err := s.DB.BeginTx(input.Ctx, nil)
 	if err != nil {

@@ -1,61 +1,22 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Trash2,
   RotateCcw,
   AlertTriangle,
   Folder,
-  File,
-  ImageIcon,
-  FileText,
-  FileSpreadsheet,
+  Loader2,
 } from "lucide-react";
+import { api } from "@/lib/api/api-call";
+import type { ApiResponse } from "@/lib/api/api-response";
 
 type TrashItem = {
   id: string;
-  type: "folder" | "file";
   name: string;
-  mime_type?: string;
-  size_bytes?: number;
+  parent_folder_id: string;
   deleted_at: string;
-  original_path: string;
 };
-
-const mockTrashItems: TrashItem[] = [
-  {
-    id: "t1",
-    type: "file",
-    name: "old-draft.pdf",
-    mime_type: "application/pdf",
-    size_bytes: 1048576,
-    deleted_at: "2026-06-28T09:30:00Z",
-    original_path: "/Documents/Drafts",
-  },
-  {
-    id: "t2",
-    type: "folder",
-    name: "Old Projects",
-    deleted_at: "2026-06-27T16:15:00Z",
-    original_path: "/Work",
-  },
-  {
-    id: "t3",
-    type: "file",
-    name: "screenshot-old.png",
-    mime_type: "image/png",
-    size_bytes: 524288,
-    deleted_at: "2026-06-26T11:45:00Z",
-    original_path: "/Photos/Screenshots",
-  },
-];
-
-function formatSize(bytes: number): string {
-  if (bytes >= 1073741824) return `${(bytes / 1073741824).toFixed(1)} GB`;
-  if (bytes >= 1048576) return `${(bytes / 1048576).toFixed(1)} MB`;
-  if (bytes >= 1024) return `${(bytes / 1024).toFixed(0)} KB`;
-  return `${bytes} B`;
-}
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString("en-US", {
@@ -65,29 +26,30 @@ function formatDate(iso: string): string {
   });
 }
 
-function FileIcon({ mime_type }: { mime_type: string }) {
-  if (mime_type.startsWith("image/"))
-    return <ImageIcon size={18} className="text-purple-500 dark:text-purple-400" />;
-  if (mime_type.startsWith("text/"))
-    return <FileText size={18} className="text-gray-500 dark:text-gray-400" />;
-  if (
-    mime_type.includes("spreadsheet") ||
-    mime_type.includes("excel") ||
-    mime_type.includes("csv")
-  )
-    return <FileSpreadsheet size={18} className="text-green-600 dark:text-green-400" />;
-  if (mime_type.includes("presentation") || mime_type.includes("powerpoint"))
-    return <FileText size={18} className="text-orange-500 dark:text-orange-400" />;
-  if (mime_type === "application/pdf")
-    return <FileText size={18} className="text-red-500 dark:text-red-400" />;
-  return <File size={18} className="text-gray-400 dark:text-gray-500" />;
-}
-
 export default function TrashPage() {
-  const [items, setItems] = useState(mockTrashItems);
+  const [items, setItems] = useState<TrashItem[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [isLoading, setIsLoading] = useState(true);
+  const [restoringIds, setRestoringIds] = useState<Set<string>>(new Set());
+  const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
 
   const allSelected = items.length > 0 && selectedIds.size === items.length;
+
+  useEffect(() => {
+    let cancelled = false;
+    api
+      .get<ApiResponse<TrashItem[]>>("/trash/folders")
+      .then((res) => {
+        if (!cancelled) setItems(res.data);
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   function toggleSelect(id: string) {
     setSelectedIds((prev) => {
@@ -106,7 +68,57 @@ export default function TrashPage() {
     }
   }
 
-  function handleDeleteSelected() {
+  async function handleRestore(id: string) {
+    setRestoringIds((prev) => new Set(prev).add(id));
+    try {
+      await api.post<ApiResponse<null>>(`/trash/folders/${id}/restore`, {});
+      setItems((prev) => prev.filter((i) => i.id !== id));
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to restore";
+      alert(msg);
+    } finally {
+      setRestoringIds((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+    }
+  }
+
+  async function handleDeleteSingle(id: string, name: string) {
+    if (
+      !confirm(
+        `Permanently delete "${name}"? This cannot be undone.`,
+      )
+    )
+      return;
+    setDeletingIds((prev) => new Set(prev).add(id));
+    try {
+      await api.delete<ApiResponse<null>>(`/trash/folders/${id}`);
+      setItems((prev) => prev.filter((i) => i.id !== id));
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to delete";
+      alert(msg);
+    } finally {
+      setDeletingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+    }
+  }
+
+  async function handleDeleteSelected() {
     const count = selectedIds.size;
     if (
       !confirm(
@@ -114,14 +126,35 @@ export default function TrashPage() {
       )
     )
       return;
-    setItems((prev) => prev.filter((i) => !selectedIds.has(i.id)));
-    setSelectedIds(new Set());
+    try {
+      await Promise.all(
+        Array.from(selectedIds).map((id) =>
+          api.delete<ApiResponse<null>>(`/trash/folders/${id}`),
+        ),
+      );
+      setItems((prev) => prev.filter((i) => !selectedIds.has(i.id)));
+      setSelectedIds(new Set());
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to delete items";
+      alert(msg);
+    }
   }
 
-  function handleEmptyTrash() {
+  async function handleEmptyTrash() {
     if (!confirm("Permanently delete all items in trash?")) return;
-    setItems([]);
-    setSelectedIds(new Set());
+    try {
+      await Promise.all(
+        items.map((i) =>
+          api.delete<ApiResponse<null>>(`/trash/folders/${i.id}`),
+        ),
+      );
+      setItems([]);
+      setSelectedIds(new Set());
+    } catch (err: unknown) {
+      const msg =
+        err instanceof Error ? err.message : "Failed to empty trash";
+      alert(msg);
+    }
   }
 
   return (
@@ -156,7 +189,11 @@ export default function TrashPage() {
         </span>
       </div>
 
-      {items.length === 0 ? (
+      {isLoading ? (
+        <div className="flex items-center justify-center py-20">
+          <Loader2 size={32} className="animate-spin text-gray-400" />
+        </div>
+      ) : items.length === 0 ? (
         <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-gray-300 bg-white py-16 dark:border-gray-700 dark:bg-gray-900">
           <Trash2 size={40} className="text-gray-300 dark:text-gray-600" />
           <div className="text-center">
@@ -182,12 +219,6 @@ export default function TrashPage() {
                   />
                 </th>
                 <th className="px-5 py-3 font-medium">Name</th>
-                <th className="hidden px-5 py-3 font-medium sm:table-cell">
-                  Size
-                </th>
-                <th className="hidden px-5 py-3 font-medium md:table-cell">
-                  Original Location
-                </th>
                 <th className="px-5 py-3 font-medium">Deleted</th>
                 <th className="px-5 py-3 font-medium">Actions</th>
               </tr>
@@ -210,23 +241,11 @@ export default function TrashPage() {
                   </td>
                   <td className="px-5 py-3">
                     <div className="flex items-center gap-3">
-                      {item.type === "folder" ? (
-                        <Folder size={18} className="text-blue-500 dark:text-blue-400" />
-                      ) : (
-                        <FileIcon mime_type={item.mime_type!} />
-                      )}
+                      <Folder size={18} className="text-blue-500 dark:text-blue-400" />
                       <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
                         {item.name}
                       </span>
                     </div>
-                  </td>
-                  <td className="hidden px-5 py-3 text-sm text-gray-500 dark:text-gray-400 sm:table-cell">
-                    {item.type === "folder"
-                      ? "--"
-                      : formatSize(item.size_bytes!)}
-                  </td>
-                  <td className="hidden px-5 py-3 text-sm text-gray-500 dark:text-gray-400 md:table-cell">
-                    {item.original_path}
                   </td>
                   <td className="px-5 py-3 text-sm text-gray-500 dark:text-gray-400">
                     {formatDate(item.deleted_at)}
@@ -234,32 +253,27 @@ export default function TrashPage() {
                   <td className="px-5 py-3">
                     <div className="flex items-center gap-1">
                       <button
-                        className="inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/30"
-                        onClick={() => alert("Restore coming soon")}
+                        className="inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/30 disabled:opacity-50"
+                        onClick={() => handleRestore(item.id)}
+                        disabled={restoringIds.has(item.id)}
                       >
-                        <RotateCcw size={13} />
+                        {restoringIds.has(item.id) ? (
+                          <Loader2 size={13} className="animate-spin" />
+                        ) : (
+                          <RotateCcw size={13} />
+                        )}
                         Restore
                       </button>
                       <button
-                        className="inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
-                        onClick={() => {
-                          if (
-                            confirm(
-                              `Permanently delete "${item.name}"? This cannot be undone.`,
-                            )
-                          ) {
-                            setItems((prev) =>
-                              prev.filter((i) => i.id !== item.id),
-                            );
-                            setSelectedIds((prev) => {
-                              const next = new Set(prev);
-                              next.delete(item.id);
-                              return next;
-                            });
-                          }
-                        }}
+                        className="inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20 disabled:opacity-50"
+                        onClick={() => handleDeleteSingle(item.id, item.name)}
+                        disabled={deletingIds.has(item.id)}
                       >
-                        <Trash2 size={13} />
+                        {deletingIds.has(item.id) ? (
+                          <Loader2 size={13} className="animate-spin" />
+                        ) : (
+                          <Trash2 size={13} />
+                        )}
                         Delete
                       </button>
                     </div>

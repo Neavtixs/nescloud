@@ -96,6 +96,21 @@ type InputPermanentDeleteFolder struct {
 	OwnerID string
 }
 
+type InputListTrash struct {
+	Ctx     context.Context
+	OwnerID string
+}
+
+type ResultTrashItem struct {
+	ID             string `json:"id"`
+	OwnerID        string `json:"owner_id"`
+	ParentFolderID string `json:"parent_folder_id"`
+	Name           string `json:"name"`
+	DeletedAt      string `json:"deleted_at"`
+	CreatedAt      string `json:"created_at"`
+	UpdatedAt      string `json:"updated_at"`
+}
+
 type ResultFolder struct {
 	ID             string `json:"id"`
 	Name           string `json:"name"`

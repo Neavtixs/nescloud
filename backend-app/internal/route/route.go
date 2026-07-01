@@ -55,6 +55,7 @@ func (h *Handler) SetupRoute(app *gin.Engine) {
 
 		trash := user.Group("/trash")
 		{
+			trash.GET("/folders", h.Folder.ListTrashHandler)
 			trash.POST("/folders/:id/restore", h.Folder.RestoreFolderHandler)
 			trash.DELETE("/folders/:id", h.Folder.PermanentDeleteFolderHandler)
 		}
