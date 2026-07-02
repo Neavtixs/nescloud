@@ -6,6 +6,10 @@ import {
   RotateCcw,
   AlertTriangle,
   Folder,
+  File,
+  ImageIcon,
+  FileText,
+  FileSpreadsheet,
   Loader2,
 } from "lucide-react";
 import { api } from "@/lib/api/api-call";
@@ -13,10 +17,35 @@ import type { ApiResponse } from "@/lib/api/api-response";
 
 type TrashItem = {
   id: string;
+  type: "folder" | "file";
+  name: string;
+  parent_folder_id?: string;
+  mime_type?: string;
+  size?: number;
+  deleted_at: string;
+};
+
+type FolderTrashRes = {
+  id: string;
   name: string;
   parent_folder_id: string;
   deleted_at: string;
 };
+
+type FileTrashRes = {
+  id: string;
+  name: string;
+  mime_type: string;
+  size: number;
+  deleted_at: string;
+};
+
+function formatSize(bytes: number): string {
+  if (bytes >= 1073741824) return `${(bytes / 1073741824).toFixed(1)} GB`;
+  if (bytes >= 1048576) return `${(bytes / 1048576).toFixed(1)} MB`;
+  if (bytes >= 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+  return `${bytes} B`;
+}
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString("en-US", {
@@ -24,6 +53,24 @@ function formatDate(iso: string): string {
     month: "short",
     day: "numeric",
   });
+}
+
+function FileIcon({ mime_type, size = 18 }: { mime_type: string; size?: number }) {
+  if (mime_type.startsWith("image/"))
+    return <ImageIcon size={size} className="text-purple-500 dark:text-purple-400" />;
+  if (mime_type.startsWith("text/"))
+    return <FileText size={size} className="text-gray-500 dark:text-gray-400" />;
+  if (
+    mime_type.includes("spreadsheet") ||
+    mime_type.includes("excel") ||
+    mime_type.includes("csv")
+  )
+    return <FileSpreadsheet size={size} className="text-green-600 dark:text-green-400" />;
+  if (mime_type.includes("presentation") || mime_type.includes("powerpoint"))
+    return <FileText size={size} className="text-orange-500 dark:text-orange-400" />;
+  if (mime_type === "application/pdf")
+    return <FileText size={size} className="text-red-500 dark:text-red-400" />;
+  return <File size={size} className="text-gray-400 dark:text-gray-500" />;
 }
 
 export default function TrashPage() {
@@ -37,10 +84,33 @@ export default function TrashPage() {
 
   useEffect(() => {
     let cancelled = false;
-    api
-      .get<ApiResponse<TrashItem[]>>("/trash/folders")
-      .then((res) => {
-        if (!cancelled) setItems(res.data);
+    Promise.all([
+      api.get<ApiResponse<FolderTrashRes[]>>("/trash/folders"),
+      api.get<ApiResponse<FileTrashRes[]>>("/trash/files"),
+    ])
+      .then(([folderRes, fileRes]) => {
+        if (cancelled) return;
+        const folderItems: TrashItem[] = folderRes.data.map((f) => ({
+          id: f.id,
+          type: "folder" as const,
+          name: f.name,
+          parent_folder_id: f.parent_folder_id,
+          deleted_at: f.deleted_at,
+        }));
+        const fileItems: TrashItem[] = fileRes.data.map((f) => ({
+          id: f.id,
+          type: "file" as const,
+          name: f.name,
+          mime_type: f.mime_type,
+          size: f.size,
+          deleted_at: f.deleted_at,
+        }));
+        const all = [...folderItems, ...fileItems].sort(
+          (a, b) =>
+            new Date(b.deleted_at).getTime() -
+            new Date(a.deleted_at).getTime(),
+        );
+        setItems(all);
       })
       .catch(() => {})
       .finally(() => {
@@ -68,10 +138,14 @@ export default function TrashPage() {
     }
   }
 
-  async function handleRestore(id: string) {
+  async function handleRestore(id: string, type: "folder" | "file") {
     setRestoringIds((prev) => new Set(prev).add(id));
     try {
-      await api.post<ApiResponse<null>>(`/trash/folders/${id}/restore`, {});
+      const path =
+        type === "folder"
+          ? `/trash/folders/${id}/restore`
+          : `/trash/files/${id}/restore`;
+      await api.post<ApiResponse<null>>(path, {});
       setItems((prev) => prev.filter((i) => i.id !== id));
       setSelectedIds((prev) => {
         const next = new Set(prev);
@@ -90,7 +164,7 @@ export default function TrashPage() {
     }
   }
 
-  async function handleDeleteSingle(id: string, name: string) {
+  async function handleDeleteSingle(id: string, type: "folder" | "file", name: string) {
     if (
       !confirm(
         `Permanently delete "${name}"? This cannot be undone.`,
@@ -99,7 +173,9 @@ export default function TrashPage() {
       return;
     setDeletingIds((prev) => new Set(prev).add(id));
     try {
-      await api.delete<ApiResponse<null>>(`/trash/folders/${id}`);
+      const path =
+        type === "folder" ? `/trash/folders/${id}` : `/trash/files/${id}`;
+      await api.delete<ApiResponse<null>>(path);
       setItems((prev) => prev.filter((i) => i.id !== id));
       setSelectedIds((prev) => {
         const next = new Set(prev);
@@ -128,9 +204,14 @@ export default function TrashPage() {
       return;
     try {
       await Promise.all(
-        Array.from(selectedIds).map((id) =>
-          api.delete<ApiResponse<null>>(`/trash/folders/${id}`),
-        ),
+        Array.from(selectedIds).map((id) => {
+          const item = items.find((i) => i.id === id);
+          const path =
+            item?.type === "folder"
+              ? `/trash/folders/${id}`
+              : `/trash/files/${id}`;
+          return api.delete<ApiResponse<null>>(path);
+        }),
       );
       setItems((prev) => prev.filter((i) => !selectedIds.has(i.id)));
       setSelectedIds(new Set());
@@ -143,11 +224,7 @@ export default function TrashPage() {
   async function handleEmptyTrash() {
     if (!confirm("Permanently delete all items in trash?")) return;
     try {
-      await Promise.all(
-        items.map((i) =>
-          api.delete<ApiResponse<null>>(`/trash/folders/${i.id}`),
-        ),
-      );
+      await api.delete<ApiResponse<null>>("/trash");
       setItems([]);
       setSelectedIds(new Set());
     } catch (err: unknown) {
@@ -219,6 +296,9 @@ export default function TrashPage() {
                   />
                 </th>
                 <th className="px-5 py-3 font-medium">Name</th>
+                <th className="hidden px-5 py-3 font-medium sm:table-cell">
+                  Size
+                </th>
                 <th className="px-5 py-3 font-medium">Deleted</th>
                 <th className="px-5 py-3 font-medium">Actions</th>
               </tr>
@@ -241,11 +321,18 @@ export default function TrashPage() {
                   </td>
                   <td className="px-5 py-3">
                     <div className="flex items-center gap-3">
-                      <Folder size={18} className="text-blue-500 dark:text-blue-400" />
+                      {item.type === "folder" ? (
+                        <Folder size={18} className="text-blue-500 dark:text-blue-400" />
+                      ) : (
+                        <FileIcon mime_type={item.mime_type!} />
+                      )}
                       <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
                         {item.name}
                       </span>
                     </div>
+                  </td>
+                  <td className="hidden px-5 py-3 text-sm text-gray-500 dark:text-gray-400 sm:table-cell">
+                    {item.type === "folder" ? "--" : formatSize(item.size!)}
                   </td>
                   <td className="px-5 py-3 text-sm text-gray-500 dark:text-gray-400">
                     {formatDate(item.deleted_at)}
@@ -254,7 +341,7 @@ export default function TrashPage() {
                     <div className="flex items-center gap-1">
                       <button
                         className="inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/30 disabled:opacity-50"
-                        onClick={() => handleRestore(item.id)}
+                        onClick={() => handleRestore(item.id, item.type)}
                         disabled={restoringIds.has(item.id)}
                       >
                         {restoringIds.has(item.id) ? (
@@ -266,7 +353,7 @@ export default function TrashPage() {
                       </button>
                       <button
                         className="inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20 disabled:opacity-50"
-                        onClick={() => handleDeleteSingle(item.id, item.name)}
+                        onClick={() => handleDeleteSingle(item.id, item.type, item.name)}
                         disabled={deletingIds.has(item.id)}
                       >
                         {deletingIds.has(item.id) ? (

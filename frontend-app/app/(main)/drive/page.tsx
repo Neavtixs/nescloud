@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useCallback, useState } from "react";
+import { useEffect, useMemo, useCallback, useState, useRef } from "react";
 import { useAtom } from "jotai";
 import { api } from "@/lib/api/api-call";
 import type { ApiResponse, PaginatedResponse } from "@/lib/api/api-response";
@@ -33,6 +33,18 @@ import {
 
 type ItemType = "folder" | "file";
 
+type FileItem = {
+  id: string;
+  name: string;
+  mime_type: string;
+  extension: string;
+  size: number;
+  folder_id: string;
+  upload_status: string;
+  created_at: string;
+  updated_at: string;
+};
+
 type DriveItem = {
   id: string;
   type: ItemType;
@@ -41,51 +53,6 @@ type DriveItem = {
   size_bytes?: number;
   modified_at: string;
 };
-
-const mockFiles: DriveItem[] = [
-  {
-    id: "f1",
-    type: "file",
-    name: "report-q2.pdf",
-    mime_type: "application/pdf",
-    size_bytes: 2516582,
-    modified_at: "2026-06-29T08:30:00Z",
-  },
-  {
-    id: "f2",
-    type: "file",
-    name: "holiday-photo.png",
-    mime_type: "image/png",
-    size_bytes: 1153433,
-    modified_at: "2026-06-28T16:45:00Z",
-  },
-  {
-    id: "f3",
-    type: "file",
-    name: "budget-2026.xlsx",
-    mime_type:
-      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    size_bytes: 876544,
-    modified_at: "2026-06-27T10:15:00Z",
-  },
-  {
-    id: "f4",
-    type: "file",
-    name: "meeting-notes.txt",
-    mime_type: "text/plain",
-    size_bytes: 12288,
-    modified_at: "2026-06-26T14:00:00Z",
-  },
-  {
-    id: "f5",
-    type: "file",
-    name: "presentation.pptx",
-    mime_type:
-      "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-    size_bytes: 5242880,
-    modified_at: "2026-06-25T09:20:00Z",
-  },
-];
 
 function formatSize(bytes: number): string {
   if (bytes >= 1073741824) return `${(bytes / 1073741824).toFixed(1)} GB`;
@@ -128,15 +95,19 @@ const menuItemDanger =
 function ItemMenu({
   type,
   children,
-  onRenameFolder,
+  onRename,
   onOpenFolder,
-  onDeleteFolder,
+  onDelete,
+  onDownload,
+  onShare,
 }: {
   type: ItemType;
   children: React.ReactNode;
-  onRenameFolder?: () => void;
+  onRename?: () => void;
   onOpenFolder?: () => void;
-  onDeleteFolder?: () => void;
+  onDelete?: () => void;
+  onDownload?: () => void;
+  onShare?: () => void;
 }) {
   return (
     <DropdownMenu.Root>
@@ -150,64 +121,34 @@ function ItemMenu({
           align="end"
         >
           {type === "file" && (
-            <DropdownMenu.Item
-              onSelect={() => alert("Download coming soon")}
-              className={menuItem}
-            >
+            <DropdownMenu.Item onSelect={() => onDownload?.()} className={menuItem}>
               <Download size={14} />
               Download
             </DropdownMenu.Item>
           )}
-          <DropdownMenu.Item
-            onSelect={() => {
-              if (type === "folder" && onRenameFolder) {
-                onRenameFolder();
-              } else {
-                alert("Rename coming soon");
-              }
-            }}
-            className={menuItem}
-          >
+          <DropdownMenu.Item onSelect={() => onRename?.()} className={menuItem}>
             <Pencil size={14} />
             Rename
           </DropdownMenu.Item>
           {type === "file" && (
-            <DropdownMenu.Item
-              onSelect={() => alert("Share coming soon")}
-              className={menuItem}
-            >
+            <DropdownMenu.Item onSelect={() => onShare?.()} className={menuItem}>
               <Link size={14} />
               Share
             </DropdownMenu.Item>
           )}
           {type === "folder" && (
             <>
-              <DropdownMenu.Item
-                onSelect={() => onOpenFolder?.()}
-                className={menuItem}
-              >
+              <DropdownMenu.Item onSelect={() => onOpenFolder?.()} className={menuItem}>
                 <FolderOpen size={14} />
                 Open
               </DropdownMenu.Item>
               <DropdownMenu.Separator className="my-1 border-t border-gray-200 dark:border-gray-800" />
-              <DropdownMenu.Item
-                onSelect={() => onDeleteFolder?.()}
-                className={menuItemDanger}
-              >
-                <Trash2 size={14} />
-                Delete
-              </DropdownMenu.Item>
             </>
           )}
-          {type === "file" && (
-            <DropdownMenu.Item
-              onSelect={() => alert("Delete coming soon")}
-              className={menuItem}
-            >
-              <Trash2 size={14} />
-              Delete
-            </DropdownMenu.Item>
-          )}
+          <DropdownMenu.Item onSelect={() => onDelete?.()} className={menuItemDanger}>
+            <Trash2 size={14} />
+            Delete
+          </DropdownMenu.Item>
         </DropdownMenu.Content>
       </DropdownMenu.Portal>
     </DropdownMenu.Root>
@@ -220,19 +161,22 @@ export default function DrivePage() {
   const [search, setSearch] = useState("");
   const [viewMode, setViewMode] = useState<"list" | "grid">("list");
   const [folders, setFolders] = useAtom(foldersAtom);
+  const [files, setFiles] = useState<FileItem[]>([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
   const [isCreating, setIsCreating] = useState(false);
   const [createError, setCreateError] = useState("");
   const [filePage, setFilePage] = useState(1);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [showRenameModal, setShowRenameModal] = useState(false);
-  const [renameTarget, setRenameTarget] = useState<{ id: string; name: string } | null>(null);
+  const [renameTarget, setRenameTarget] = useState<{ id: string; name: string; type: ItemType } | null>(null);
   const [renameValue, setRenameValue] = useState("");
   const [isRenaming, setIsRenaming] = useState(false);
   const [renameError, setRenameError] = useState("");
 
-  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string; type: ItemType } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
   const [currentFolderId, setCurrentFolderId] = useState("");
@@ -253,13 +197,28 @@ export default function DrivePage() {
       .finally(() => setIsNavigating(false));
   }, [currentFolderId, setFolders]);
 
-  const fileTotal = mockFiles.length;
+  useEffect(() => {
+    let cancelled = false;
+    const folderParam = currentFolderId || "";
+    api
+      .get<PaginatedResponse<FileItem>>(`/files?folder_id=${folderParam}&limit=999`)
+      .then((res) => {
+        if (!cancelled) setFiles(res.data);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+      setFiles([]);
+    };
+  }, [currentFolderId]);
+
+  const fileTotal = files.length;
   const fileTotalPages = Math.max(1, Math.ceil(fileTotal / FILE_LIMIT));
 
   const paginatedFiles = useMemo(() => {
     const offset = (filePage - 1) * FILE_LIMIT;
-    return mockFiles.slice(offset, offset + FILE_LIMIT);
-  }, [filePage]);
+    return files.slice(offset, offset + FILE_LIMIT);
+  }, [files, filePage]);
 
   const items = useMemo(() => {
     const folderItems: DriveItem[] = folders.map((f) => ({
@@ -269,7 +228,16 @@ export default function DrivePage() {
       modified_at: f.updated_at,
     }));
 
-    const all = [...folderItems, ...paginatedFiles];
+    const fileItems: DriveItem[] = paginatedFiles.map((f) => ({
+      id: f.id,
+      type: "file" as const,
+      name: f.name,
+      mime_type: f.mime_type,
+      size_bytes: f.size,
+      modified_at: f.updated_at,
+    }));
+
+    const all = [...folderItems, ...fileItems];
 
     const filtered = search
       ? all.filter((item) =>
@@ -348,58 +316,145 @@ export default function DrivePage() {
     }
   }, [newFolderName, currentFolderId, setFolders]);
 
-  const openRenameModal = useCallback((id: string, name: string) => {
-    setRenameTarget({ id, name });
+  const openRenameModal = useCallback((id: string, name: string, type: ItemType) => {
+    setRenameTarget({ id, name, type });
     setRenameValue(name);
     setShowRenameModal(true);
   }, []);
 
-  const handleRenameFolder = useCallback(async () => {
+  const handleRename = useCallback(async () => {
     if (!renameTarget) return;
     setRenameError("");
     setIsRenaming(true);
 
     try {
-      await api.patch<ApiResponse<{ id: string; name: string }>>(
-        `/folders/${renameTarget.id}`,
-        { name: renameValue.trim() },
-      );
-
-      setFolders((prev) =>
-        prev.map((f) =>
-          f.id === renameTarget.id
-            ? { ...f, name: renameValue.trim(), updated_at: new Date().toISOString() }
-            : f,
-        ),
-      );
+      if (renameTarget.type === "folder") {
+        await api.patch<ApiResponse<{ id: string; name: string }>>(
+          `/folders/${renameTarget.id}`,
+          { name: renameValue.trim() },
+        );
+        setFolders((prev) =>
+          prev.map((f) =>
+            f.id === renameTarget.id
+              ? { ...f, name: renameValue.trim(), updated_at: new Date().toISOString() }
+              : f,
+          ),
+        );
+      } else {
+        await api.patch<ApiResponse<{ id: string; original_name: string }>>(
+          `/files/${renameTarget.id}`,
+          { name: renameValue.trim() },
+        );
+        setFiles((prev) =>
+          prev.map((f) =>
+            f.id === renameTarget.id
+              ? { ...f, name: renameValue.trim(), updated_at: new Date().toISOString() }
+              : f,
+          ),
+        );
+      }
       setShowRenameModal(false);
       setRenameTarget(null);
       setRenameValue("");
     } catch (err: unknown) {
       const message =
-        err instanceof Error ? err.message : "Failed to rename folder";
+        err instanceof Error ? err.message : "Failed to rename";
       setRenameError(message);
     } finally {
       setIsRenaming(false);
     }
   }, [renameTarget, renameValue, setFolders]);
 
-  const confirmDeleteFolder = useCallback(async () => {
+  const confirmDelete = useCallback(async () => {
     if (!deleteTarget) return;
     setIsDeleting(true);
 
     try {
-      await api.delete<ApiResponse<null>>(`/folders/${deleteTarget.id}`);
-      setFolders((prev) => prev.filter((f) => f.id !== deleteTarget.id));
+      if (deleteTarget.type === "folder") {
+        await api.delete<ApiResponse<null>>(`/folders/${deleteTarget.id}`);
+        setFolders((prev) => prev.filter((f) => f.id !== deleteTarget.id));
+      } else {
+        await api.delete<ApiResponse<null>>(`/files/${deleteTarget.id}`);
+        setFiles((prev) => prev.filter((f) => f.id !== deleteTarget.id));
+      }
       setDeleteTarget(null);
     } catch (err: unknown) {
       const message =
-        err instanceof Error ? err.message : "Failed to delete folder";
+        err instanceof Error ? err.message : "Failed to delete";
       alert(message);
     } finally {
       setIsDeleting(false);
     }
   }, [deleteTarget, setFolders]);
+
+  const handleDownload = useCallback(async (id: string) => {
+    try {
+      const res = await api.get<ApiResponse<{ download_url: string }>>(`/files/${id}/download`);
+      window.open(res.data.download_url, "_blank");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Failed to download";
+      alert(message);
+    }
+  }, []);
+
+  const handleShare = useCallback(async (id: string) => {
+    try {
+      const res = await api.post<ApiResponse<{ url: string }>>(`/files/${id}/public-link`, {});
+      await navigator.clipboard.writeText(res.data.url);
+      alert("Public link copied to clipboard");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Failed to generate link";
+      alert(message);
+    }
+  }, []);
+
+  const handleUploadFiles = useCallback(async () => {
+    fileInputRef.current?.click();
+  }, []);
+
+  const handleFileSelected = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = e.target.files?.[0];
+    if (!selectedFile) return;
+
+    setIsUploading(true);
+    try {
+      const res = await api.post<ApiResponse<{ file_id: string; upload_url: string }>>("/files/init-upload", {
+        folder_id: currentFolderId,
+        file_name: selectedFile.name,
+        mime_type: selectedFile.type || "application/octet-stream",
+        size: selectedFile.size,
+      });
+
+      await fetch(res.data.upload_url, {
+        method: "PUT",
+        body: selectedFile,
+        headers: { "Content-Type": selectedFile.type || "application/octet-stream" },
+      });
+
+      await api.post<ApiResponse<null>>("/files/complete", { file_id: res.data.file_id });
+
+      setFiles((prev) => [
+        {
+          id: res.data.file_id,
+          name: selectedFile.name,
+          mime_type: selectedFile.type || "application/octet-stream",
+          extension: selectedFile.name.split(".").pop() || "",
+          size: selectedFile.size,
+          folder_id: currentFolderId,
+          upload_status: "completed",
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        },
+        ...prev,
+      ]);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Failed to upload";
+      alert(message);
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }, [currentFolderId]);
 
   return (
     <>
@@ -554,12 +609,28 @@ export default function DrivePage() {
               </Dialog.Portal>
             </Dialog.Root>
 
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileSelected}
+              className="hidden"
+            />
             <button
-              className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600"
-              onClick={() => alert("Upload coming soon")}
+              className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-blue-700 dark:hover:bg-blue-600"
+              onClick={handleUploadFiles}
+              disabled={isUploading}
             >
-              <Upload size={16} />
-              Upload
+              {isUploading ? (
+                <>
+                  <Loader2 size={16} className="animate-spin" />
+                  Uploading...
+                </>
+              ) : (
+                <>
+                  <Upload size={16} />
+                  Upload
+                </>
+              )}
             </button>
           </div>
         </div>
@@ -659,19 +730,21 @@ export default function DrivePage() {
                     <td className="relative px-5 py-3">
                       <ItemMenu
                         type={item.type}
-                        onRenameFolder={
-                          item.type === "folder"
-                            ? () => openRenameModal(item.id, item.name)
-                            : undefined
-                        }
+                        onRename={() => openRenameModal(item.id, item.name, item.type)}
                         onOpenFolder={
                           item.type === "folder"
                             ? () => navigateToFolder(item.id, item.name)
                             : undefined
                         }
-                        onDeleteFolder={
-                          item.type === "folder"
-                            ? () => setDeleteTarget({ id: item.id, name: item.name })
+                        onDelete={() => setDeleteTarget({ id: item.id, name: item.name, type: item.type })}
+                        onDownload={
+                          item.type === "file"
+                            ? () => handleDownload(item.id)
+                            : undefined
+                        }
+                        onShare={
+                          item.type === "file"
+                            ? () => handleShare(item.id)
                             : undefined
                         }
                       >
@@ -746,19 +819,21 @@ export default function DrivePage() {
                 <div className="absolute right-1.5 top-1.5">
                   <ItemMenu
                     type={item.type}
-                    onRenameFolder={
-                      item.type === "folder"
-                        ? () => openRenameModal(item.id, item.name)
-                        : undefined
-                    }
+                    onRename={() => openRenameModal(item.id, item.name, item.type)}
                     onOpenFolder={
                       item.type === "folder"
                         ? () => navigateToFolder(item.id, item.name)
                         : undefined
                     }
-                    onDeleteFolder={
-                      item.type === "folder"
-                        ? () => setDeleteTarget({ id: item.id, name: item.name })
+                    onDelete={() => setDeleteTarget({ id: item.id, name: item.name, type: item.type })}
+                    onDownload={
+                      item.type === "file"
+                        ? () => handleDownload(item.id)
+                        : undefined
+                    }
+                    onShare={
+                      item.type === "file"
+                        ? () => handleShare(item.id)
                         : undefined
                     }
                   >
@@ -803,7 +878,7 @@ export default function DrivePage() {
           >
             <div className="mb-4 flex items-center justify-between">
               <Dialog.Title className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                Rename Folder
+                Rename {renameTarget?.type === "folder" ? "Folder" : "File"}
               </Dialog.Title>
               <Dialog.Close asChild>
                 <button className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-gray-300">
@@ -814,17 +889,17 @@ export default function DrivePage() {
 
             <div className="mb-4">
               <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Folder Name
+                Name
               </label>
               <input
                 type="text"
                 value={renameValue}
                 onChange={(e) => setRenameValue(e.target.value)}
-                placeholder="Enter folder name"
+                placeholder="Enter name"
                 autoFocus
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && renameValue.trim() && !isRenaming) {
-                    handleRenameFolder();
+                    handleRename();
                   }
                 }}
                 className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 dark:focus:border-blue-500 dark:focus:ring-blue-800"
@@ -844,7 +919,7 @@ export default function DrivePage() {
                 </button>
               </Dialog.Close>
               <button
-                onClick={handleRenameFolder}
+                onClick={handleRename}
                 disabled={!renameValue.trim() || isRenaming}
                 className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-blue-700 dark:hover:bg-blue-600"
               >
@@ -873,7 +948,11 @@ export default function DrivePage() {
               Move to trash?
             </AlertDialog.Title>
             <AlertDialog.Description className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-              Are you sure you want to move <span className="font-medium text-gray-700 dark:text-gray-300">&ldquo;{deleteTarget?.name}&rdquo;</span> to trash?
+              Are you sure you want to move{" "}
+              <span className="font-medium text-gray-700 dark:text-gray-300">
+                &ldquo;{deleteTarget?.name}&rdquo;
+              </span>{" "}
+              to trash?
             </AlertDialog.Description>
             <div className="mt-6 flex justify-end gap-2">
               <AlertDialog.Cancel asChild>
@@ -883,7 +962,7 @@ export default function DrivePage() {
               </AlertDialog.Cancel>
               <AlertDialog.Action asChild>
                 <button
-                  onClick={confirmDeleteFolder}
+                  onClick={confirmDelete}
                   disabled={isDeleting}
                   className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-red-700 dark:hover:bg-red-600"
                 >
