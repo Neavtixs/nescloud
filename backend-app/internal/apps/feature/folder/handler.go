@@ -354,3 +354,33 @@ func (h *Handler) PermanentDeleteFolderHandler(c *gin.Context) {
 		Message: "folder permanently deleted",
 	})
 }
+
+func (h *Handler) EmptyTrashHandler(c *gin.Context) {
+	log := helper.NewLog(h.Log, c)
+	log.Info("empty trash request received")
+
+	userID, _ := c.Get("user_id")
+	userIDStr, ok := userID.(string)
+	if !ok || userIDStr == "" {
+		log.Warn("invalid or missing user_id in context")
+		c.JSON(http.StatusUnauthorized, dto.ErrorWeb{Message: errs.ErrInvalidAccessToken.Error()})
+		return
+	}
+
+	input := &dto.InputEmptyTrash{
+		Ctx:     c.Request.Context(),
+		OwnerID: userIDStr,
+	}
+
+	if err := h.Service.EmptyTrash(input); err != nil {
+		log.WithField("layer", "folder_handler").Error(err)
+		c.JSON(http.StatusInternalServerError, dto.ErrorWeb{Message: errs.ErrInternal.Error()})
+		return
+	}
+
+	log.Info("trash emptied")
+
+	c.JSON(http.StatusOK, dto.ResponseWeb[any]{
+		Message: "trash emptied",
+	})
+}

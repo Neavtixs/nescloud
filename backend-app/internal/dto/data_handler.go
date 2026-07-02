@@ -63,6 +63,54 @@ type PaginationRes struct {
 	TotalPages int `json:"total_pages"`
 }
 
+type FileCompleteReq struct {
+	FileID string `json:"file_id" validate:"required"`
+}
+
+type FileInitUploadReq struct {
+	FolderID string `json:"folder_id"`
+	FileName string `json:"file_name" validate:"required,min=1,max=255"`
+	MimeType string `json:"mime_type" validate:"required"`
+	Size     int64  `json:"size" validate:"required"`
+}
+
+type FileRenameReq struct {
+	Name string `json:"name" validate:"required,min=1,max=255"`
+}
+
+type FileRes struct {
+	ID           string `json:"id"`
+	FolderID     string `json:"folder_id"`
+	Name         string `json:"name"`
+	OriginalName string `json:"original_name"`
+	MimeType     string `json:"mime_type"`
+	Extension    string `json:"extension"`
+	Size         int64  `json:"size"`
+	UploadStatus string `json:"upload_status"`
+	CreatedAt    string `json:"created_at"`
+	UpdatedAt    string `json:"updated_at"`
+}
+
+type FileUploadRes struct {
+	FileID    string `json:"file_id"`
+	UploadURL string `json:"upload_url"`
+	ExpiresAt string `json:"expired_at"`
+}
+
+type PublicLinkRes struct {
+	URL   string `json:"url"`
+	Token string `json:"token"`
+}
+
+type PublicLinkItemRes struct {
+	FileID    string `json:"file_id"`
+	FileName  string `json:"file_name"`
+	MimeType  string `json:"mime_type"`
+	Size      int64  `json:"size"`
+	PublicURL string `json:"public_url"`
+	CreatedAt string `json:"created_at"`
+}
+
 type ErrorWeb struct {
 	Message string      `json:"message"`
 	Errors  interface{} `json:"errors,omitempty"`

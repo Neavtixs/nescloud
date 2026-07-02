@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import * as Tooltip from "@radix-ui/react-tooltip";
 import {
   Link,
@@ -11,44 +11,19 @@ import {
   FileSpreadsheet,
   File,
   Check,
+  Loader2,
 } from "lucide-react";
+import { api } from "@/lib/api/api-call";
+import type { ApiResponse } from "@/lib/api/api-response";
 
 type SharedItem = {
-  id: string;
+  file_id: string;
   file_name: string;
   mime_type: string;
-  size_bytes: number;
+  size: number;
   public_url: string;
   created_at: string;
 };
-
-const mockSharedItems: SharedItem[] = [
-  {
-    id: "s1",
-    file_name: "report-q2.pdf",
-    mime_type: "application/pdf",
-    size_bytes: 2516582,
-    public_url: "https://nescloud.example.com/public/abc123xyz",
-    created_at: "2026-06-28T14:30:00Z",
-  },
-  {
-    id: "s2",
-    file_name: "banner-promo.png",
-    mime_type: "image/png",
-    size_bytes: 1153433,
-    public_url: "https://nescloud.example.com/public/def456uvw",
-    created_at: "2026-06-27T10:15:00Z",
-  },
-  {
-    id: "s3",
-    file_name: "data-report.xlsx",
-    mime_type:
-      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    size_bytes: 876544,
-    public_url: "https://nescloud.example.com/public/ghi789rst",
-    created_at: "2026-06-25T09:00:00Z",
-  },
-];
 
 function formatSize(bytes: number): string {
   if (bytes >= 1073741824) return `${(bytes / 1073741824).toFixed(1)} GB`;
@@ -93,13 +68,45 @@ function FileIcon({ mime_type }: { mime_type: string }) {
 }
 
 export default function SharedPage() {
+  const [items, setItems] = useState<SharedItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [revokingId, setRevokingId] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    api
+      .get<ApiResponse<SharedItem[]>>("/files/public-links")
+      .then((res) => {
+        if (!cancelled) setItems(res.data);
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   function handleCopy(url: string, id: string) {
     navigator.clipboard.writeText(url).then(() => {
       setCopiedId(id);
       setTimeout(() => setCopiedId(null), 2000);
     });
+  }
+
+  async function handleRevoke(fileId: string) {
+    setRevokingId(fileId);
+    try {
+      await api.delete<ApiResponse<null>>(`/files/${fileId}/public-link`);
+      setItems((prev) => prev.filter((i) => i.file_id !== fileId));
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to revoke";
+      alert(msg);
+    } finally {
+      setRevokingId(null);
+    }
   }
 
   return (
@@ -113,7 +120,11 @@ export default function SharedPage() {
         </p>
       </div>
 
-      {mockSharedItems.length === 0 ? (
+      {isLoading ? (
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="animate-spin text-gray-400" size={32} />
+        </div>
+      ) : items.length === 0 ? (
         <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-gray-300 bg-white py-16 dark:border-gray-700 dark:bg-gray-900">
           <Link size={40} className="text-gray-300 dark:text-gray-600" />
           <div className="text-center">
@@ -143,9 +154,9 @@ export default function SharedPage() {
                 </tr>
               </thead>
               <tbody>
-                {mockSharedItems.map((item) => (
+                {items.map((item) => (
                   <tr
-                    key={item.id}
+                    key={item.file_id}
                     className="border-b border-gray-50 hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-gray-800 last:border-b-0"
                   >
                     <td className="px-5 py-3">
@@ -157,27 +168,27 @@ export default function SharedPage() {
                       </div>
                     </td>
                     <td className="hidden px-5 py-3 text-sm text-gray-500 dark:text-gray-400 md:table-cell">
-                      {formatSize(item.size_bytes)}
+                      {formatSize(item.size)}
                     </td>
-                  <td className="max-w-[180px] px-5 py-3">
-                    <Tooltip.Root>
-                      <Tooltip.Trigger asChild>
-                        <span className="block truncate text-xs text-gray-500 dark:text-gray-400">
-                          {item.public_url}
-                        </span>
-                      </Tooltip.Trigger>
-                      <Tooltip.Portal>
-                        <Tooltip.Content
-                          side="top"
-                          sideOffset={4}
-                          className="max-w-[320px] break-all rounded-md bg-white px-2.5 py-1 text-xs text-gray-900 shadow-lg dark:bg-gray-700 dark:text-gray-100"
-                        >
-                          {item.public_url}
-                          <Tooltip.Arrow className="fill-white dark:fill-gray-700" />
-                        </Tooltip.Content>
-                      </Tooltip.Portal>
-                    </Tooltip.Root>
-                  </td>
+                    <td className="max-w-[180px] px-5 py-3">
+                      <Tooltip.Root>
+                        <Tooltip.Trigger asChild>
+                          <span className="block truncate text-xs text-gray-500 dark:text-gray-400">
+                            {item.public_url}
+                          </span>
+                        </Tooltip.Trigger>
+                        <Tooltip.Portal>
+                          <Tooltip.Content
+                            side="top"
+                            sideOffset={4}
+                            className="max-w-[320px] break-all rounded-md bg-white px-2.5 py-1 text-xs text-gray-900 shadow-lg dark:bg-gray-700 dark:text-gray-100"
+                          >
+                            {item.public_url}
+                            <Tooltip.Arrow className="fill-white dark:fill-gray-700" />
+                          </Tooltip.Content>
+                        </Tooltip.Portal>
+                      </Tooltip.Root>
+                    </td>
                     <td className="hidden px-5 py-3 text-sm text-gray-500 dark:text-gray-400 sm:table-cell">
                       {formatDate(item.created_at)}
                     </td>
@@ -188,10 +199,10 @@ export default function SharedPage() {
                             <button
                               className="rounded p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-gray-300"
                               onClick={() =>
-                                handleCopy(item.public_url, item.id)
+                                handleCopy(item.public_url, item.file_id)
                               }
                             >
-                              {copiedId === item.id ? (
+                              {copiedId === item.file_id ? (
                                 <Check
                                   size={15}
                                   className="text-green-600 dark:text-green-400"
@@ -207,7 +218,7 @@ export default function SharedPage() {
                               sideOffset={4}
                               className="rounded-md bg-white px-2.5 py-1 text-xs text-gray-900 shadow-lg dark:bg-gray-700 dark:text-gray-100"
                             >
-                              {copiedId === item.id ? "Copied" : "Copy"}
+                              {copiedId === item.file_id ? "Copied" : "Copy"}
                               <Tooltip.Arrow className="fill-white dark:fill-gray-700" />
                             </Tooltip.Content>
                           </Tooltip.Portal>
@@ -216,18 +227,23 @@ export default function SharedPage() {
                         <Tooltip.Root>
                           <Tooltip.Trigger asChild>
                             <button
-                              className="rounded p-1.5 text-gray-400 hover:bg-gray-100 hover:text-red-600 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-red-400"
+                              className="rounded p-1.5 text-gray-400 hover:bg-gray-100 hover:text-red-600 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-red-400 disabled:opacity-50"
                               onClick={() => {
                                 if (
                                   confirm(
                                     `Revoke public link for "${item.file_name}"?`,
                                   )
                                 ) {
-                                  alert("Revoke coming soon");
+                                  handleRevoke(item.file_id);
                                 }
                               }}
+                              disabled={revokingId === item.file_id}
                             >
-                              <XCircle size={15} />
+                              {revokingId === item.file_id ? (
+                                <Loader2 size={15} className="animate-spin" />
+                              ) : (
+                                <XCircle size={15} />
+                              )}
                             </button>
                           </Tooltip.Trigger>
                           <Tooltip.Portal>

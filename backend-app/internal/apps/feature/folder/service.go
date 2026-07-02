@@ -7,6 +7,7 @@ import (
 
 	"nescloud/backend-app/internal/apps/domain/entity"
 	"nescloud/backend-app/internal/apps/domain/repository"
+	"nescloud/backend-app/internal/apps/storage"
 	"nescloud/backend-app/internal/dto"
 	"nescloud/backend-app/internal/errs"
 
@@ -16,12 +17,16 @@ import (
 type Service struct {
 	DB         *sql.DB
 	FolderRepo *repository.FolderRepo
+	FileRepo   *repository.FileRepo
+	Storage    *storage.Storage
 }
 
-func NewService(db *sql.DB, folderRepo *repository.FolderRepo) *Service {
+func NewService(db *sql.DB, folderRepo *repository.FolderRepo, fileRepo *repository.FileRepo, store *storage.Storage) *Service {
 	return &Service{
 		DB:         db,
 		FolderRepo: folderRepo,
+		FileRepo:   fileRepo,
+		Storage:    store,
 	}
 }
 
@@ -223,8 +228,32 @@ func (s *Service) Delete(input *dto.InputDeleteFolder) error {
 		return errs.ErrDataNotFound
 	}
 
-	if err := s.FolderRepo.SoftDelete(tx, input.Ctx, input.ID, time.Now()); err != nil {
+	subfolderIDs, err := s.FolderRepo.FindSubfolderIDsRecursive(tx, input.Ctx, input.ID)
+	if err != nil {
 		return err
+	}
+
+	if len(subfolderIDs) > 0 {
+		filesInTree, err := s.FileRepo.FindFilesByFolderIDs(tx, input.Ctx, subfolderIDs)
+		if err != nil {
+			return err
+		}
+
+		if len(filesInTree) > 0 {
+			var fileIDs []string
+			for _, f := range filesInTree {
+				fileIDs = append(fileIDs, f.ID)
+			}
+			if err := s.FileRepo.BulkSoftDelete(tx, input.Ctx, fileIDs, time.Now()); err != nil {
+				return err
+			}
+		}
+
+		for _, id := range subfolderIDs {
+			if err := s.FolderRepo.SoftDelete(tx, input.Ctx, id, time.Now()); err != nil {
+				return err
+			}
+		}
 	}
 
 	if err := tx.Commit(); err != nil {
@@ -281,8 +310,82 @@ func (s *Service) PermanentDelete(input *dto.InputPermanentDeleteFolder) error {
 		return errs.ErrDataNotFound
 	}
 
-	if err := s.FolderRepo.HardDelete(tx, input.Ctx, input.ID); err != nil {
+	subfolderIDs, err := s.FolderRepo.FindSubfolderIDsRecursive(tx, input.Ctx, input.ID)
+	if err != nil {
 		return err
+	}
+
+	if len(subfolderIDs) > 0 {
+		filesInTree, err := s.FileRepo.FindFilesByFolderIDs(tx, input.Ctx, subfolderIDs)
+		if err != nil {
+			return err
+		}
+
+		for _, f := range filesInTree {
+			_ = s.Storage.DeleteObject(input.Ctx, f.StorageKey)
+		}
+
+		if len(filesInTree) > 0 {
+			var fileIDs []string
+			for _, f := range filesInTree {
+				fileIDs = append(fileIDs, f.ID)
+			}
+			if err := s.FileRepo.BulkHardDelete(tx, input.Ctx, fileIDs); err != nil {
+				return err
+			}
+		}
+
+		if err := s.FolderRepo.BulkHardDelete(tx, input.Ctx, subfolderIDs); err != nil {
+			return err
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *Service) EmptyTrash(input *dto.InputEmptyTrash) error {
+	tx, err := s.DB.BeginTx(input.Ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	deletedFolders, err := s.FolderRepo.FindDeletedByOwnerID(tx, input.Ctx, input.OwnerID)
+	if err != nil {
+		return err
+	}
+
+	deletedFiles, err := s.FileRepo.FindDeletedByOwnerID(tx, input.Ctx, input.OwnerID)
+	if err != nil {
+		return err
+	}
+
+	for _, f := range deletedFiles {
+		_ = s.Storage.DeleteObject(input.Ctx, f.StorageKey)
+	}
+
+	if len(deletedFiles) > 0 {
+		var fileIDs []string
+		for _, f := range deletedFiles {
+			fileIDs = append(fileIDs, f.ID)
+		}
+		if err := s.FileRepo.BulkHardDelete(tx, input.Ctx, fileIDs); err != nil {
+			return err
+		}
+	}
+
+	if len(deletedFolders) > 0 {
+		var folderIDs []string
+		for _, f := range deletedFolders {
+			folderIDs = append(folderIDs, f.ID)
+		}
+		if err := s.FolderRepo.BulkHardDelete(tx, input.Ctx, folderIDs); err != nil {
+			return err
+		}
 	}
 
 	if err := tx.Commit(); err != nil {

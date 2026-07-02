@@ -32,19 +32,19 @@ func InitDependencies(db *sql.DB, rdb *redis.Client, validate *validator.Validat
 	authService := auth.NewService(db, rdb, userRepo, quotaRepo)
 	authHandler := auth.NewHandler(authService, validate, log)
 
-	folderService := folder.NewService(db, folderRepo)
+	folderService := folder.NewService(db, folderRepo, fileRepo, store)
 	folderHandler := folder.NewHandler(folderService, validate, log)
 
 	fileService := file.NewService(db, fileRepo, quotaRepo, store)
-	_ = file.NewHandler(fileService, validate, log)
+	fileHandler := file.NewHandler(fileService, validate, log)
 
-	publicLinkService := publiclink.NewService(db, publicLinkRepo)
-	_ = publiclink.NewHandler(publicLinkService, validate, log)
+	publicLinkService := publiclink.NewService(db, publicLinkRepo, fileRepo, store)
+	publicLinkHandler := publiclink.NewHandler(publicLinkService, validate, log)
 
 	trashService := trash.NewService(db, folderRepo, fileRepo, quotaRepo, store)
 	_ = trash.NewHandler(trashService, validate, log)
 
 	_ = auditLogRepo
 
-	return route.NewHandler(authHandler, folderHandler, log)
+	return route.NewHandler(authHandler, folderHandler, fileHandler, publicLinkHandler, log)
 }

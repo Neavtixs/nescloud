@@ -130,3 +130,124 @@ type ResultPagination struct {
 	Total      int `json:"total"`
 	TotalPages int `json:"total_pages"`
 }
+
+type InputInitUpload struct {
+	Ctx      context.Context
+	OwnerID  string
+	FolderID string
+	FileName string
+	MimeType string
+	Size     int64
+}
+
+type InputCompleteUpload struct {
+	Ctx    context.Context
+	ID     string
+	UserID string
+}
+
+type InputListFiles struct {
+	Ctx      context.Context
+	OwnerID  string
+	FolderID string
+	Page     int
+	Limit    int
+	Search   string
+}
+
+type InputRenameFile struct {
+	Ctx     context.Context
+	ID      string
+	OwnerID string
+	Name    string
+}
+
+type InputSoftDeleteFile struct {
+	Ctx     context.Context
+	ID      string
+	OwnerID string
+}
+
+type InputRestoreFile struct {
+	Ctx     context.Context
+	ID      string
+	OwnerID string
+}
+
+type InputPermanentDeleteFile struct {
+	Ctx     context.Context
+	ID      string
+	OwnerID string
+}
+
+type InputListTrashFiles struct {
+	Ctx     context.Context
+	OwnerID string
+}
+
+type InputDownloadFile struct {
+	Ctx     context.Context
+	ID      string
+	OwnerID string
+}
+
+type InputEmptyTrash struct {
+	Ctx     context.Context
+	OwnerID string
+}
+
+type InputGeneratePublicLink struct {
+	Ctx     context.Context
+	FileID  string
+	OwnerID string
+	BaseURL string
+}
+
+type InputRevokePublicLink struct {
+	Ctx     context.Context
+	FileID  string
+	OwnerID string
+}
+
+type InputAccessPublicLink struct {
+	Ctx   context.Context
+	Token string
+}
+
+type InputListPublicLinks struct {
+	Ctx     context.Context
+	OwnerID string
+	BaseURL string
+}
+
+type ResultFile struct {
+	ID           string `json:"id"`
+	OwnerID      string `json:"owner_id"`
+	FolderID     string `json:"folder_id"`
+	Name         string `json:"name"`
+	MimeType     string `json:"mime_type"`
+	Extension    string `json:"extension"`
+	Size         int64  `json:"size"`
+	UploadStatus string `json:"upload_status"`
+	CreatedAt    string `json:"created_at"`
+	UpdatedAt    string `json:"updated_at"`
+}
+
+type ResultListFiles struct {
+	Files      []ResultFile
+	Pagination ResultPagination
+}
+
+type ResultTrashFileItem struct {
+	ID           string `json:"id"`
+	OwnerID      string `json:"owner_id"`
+	FolderID     string `json:"folder_id"`
+	Name         string `json:"name"`
+	MimeType     string `json:"mime_type"`
+	Extension    string `json:"extension"`
+	Size         int64  `json:"size"`
+	UploadStatus string `json:"upload_status"`
+	DeletedAt    string `json:"deleted_at"`
+	CreatedAt    string `json:"created_at"`
+	UpdatedAt    string `json:"updated_at"`
+}

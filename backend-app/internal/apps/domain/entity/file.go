@@ -5,7 +5,7 @@ import "time"
 type File struct {
 	ID           string
 	OwnerID      string
-	FolderID     string
+	FolderID     *string
 	OriginalName string
 	StorageKey   string
 	MimeType     string

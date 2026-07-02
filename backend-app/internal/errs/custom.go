@@ -10,5 +10,5 @@ var (
 	ErrInvalidCredentials      = errors.New("invalid email or password")
 	ErrInvalidRequest          = errors.New("invalid request format")
 	ErrFolderNameAlreadyExists = errors.New("folder name already exists")
-	ErrFolderHasChildren       = errors.New("folder is not empty")
+	ErrFileTooLarge            = errors.New("file size exceeds maximum limit")
 )

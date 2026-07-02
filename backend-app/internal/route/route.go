@@ -5,7 +5,9 @@ import (
 	"strings"
 
 	"nescloud/backend-app/internal/apps/feature/auth"
+	"nescloud/backend-app/internal/apps/feature/file"
 	"nescloud/backend-app/internal/apps/feature/folder"
+	"nescloud/backend-app/internal/apps/feature/publiclink"
 	"nescloud/backend-app/internal/middleware"
 
 	"github.com/gin-contrib/cors"
@@ -14,13 +16,15 @@ import (
 )
 
 type Handler struct {
-	Auth   *auth.Handler
-	Folder *folder.Handler
-	Log    *logrus.Logger
+	Auth       *auth.Handler
+	Folder     *folder.Handler
+	File       *file.Handler
+	PublicLink *publiclink.Handler
+	Log        *logrus.Logger
 }
 
-func NewHandler(auth *auth.Handler, folder *folder.Handler, log *logrus.Logger) *Handler {
-	return &Handler{Auth: auth, Folder: folder, Log: log}
+func NewHandler(auth *auth.Handler, folder *folder.Handler, file *file.Handler, publicLink *publiclink.Handler, log *logrus.Logger) *Handler {
+	return &Handler{Auth: auth, Folder: folder, File: file, PublicLink: publicLink, Log: log}
 }
 
 func (h *Handler) SetupRoute(app *gin.Engine) {
@@ -38,6 +42,7 @@ func (h *Handler) SetupRoute(app *gin.Engine) {
 		public.POST("/auth/register", h.Auth.RegisterHandler)
 		public.POST("/auth/login", h.Auth.LoginHandler)
 		public.POST("/auth/refresh", h.Auth.RefreshHandler)
+		public.GET("/public/:token", h.PublicLink.AccessHandler)
 	}
 
 	user := api.Group("", middleware.Authorization(h.Log))
@@ -55,9 +60,28 @@ func (h *Handler) SetupRoute(app *gin.Engine) {
 
 		trash := user.Group("/trash")
 		{
+			trash.DELETE("", h.Folder.EmptyTrashHandler)
 			trash.GET("/folders", h.Folder.ListTrashHandler)
 			trash.POST("/folders/:id/restore", h.Folder.RestoreFolderHandler)
 			trash.DELETE("/folders/:id", h.Folder.PermanentDeleteFolderHandler)
+
+			trash.GET("/files", h.File.ListTrashFilesHandler)
+			trash.POST("/files/:id/restore", h.File.RestoreFileHandler)
+			trash.DELETE("/files/:id", h.File.PermanentDeleteFileHandler)
+		}
+
+		files := user.Group("/files")
+		{
+			files.POST("/init-upload", h.File.InitUploadHandler)
+			files.POST("/complete", h.File.CompleteUploadHandler)
+			files.GET("", h.File.ListFilesHandler)
+			files.GET("/public-links", h.PublicLink.ListLinksHandler)
+			files.GET("/:id/download", h.File.DownloadHandler)
+			files.GET("/:id", h.File.FileDetailHandler)
+			files.PATCH("/:id", h.File.RenameHandler)
+			files.DELETE("/:id", h.File.DeleteFileHandler)
+			files.POST("/:id/public-link", h.PublicLink.GenerateHandler)
+			files.DELETE("/:id/public-link", h.PublicLink.RevokeHandler)
 		}
 	}
 }

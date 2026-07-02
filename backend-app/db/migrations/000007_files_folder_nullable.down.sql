@@ -1,0 +1,4 @@
+DELETE FROM files WHERE folder_id IS NULL;
+ALTER TABLE files ALTER COLUMN folder_id SET NOT NULL;
+ALTER TABLE files DROP CONSTRAINT fk_files_folder;
+ALTER TABLE files ADD CONSTRAINT fk_files_folder FOREIGN KEY (folder_id) REFERENCES folders(id) ON DELETE CASCADE;

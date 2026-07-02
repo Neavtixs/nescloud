@@ -8,6 +8,8 @@ import (
 
 	"nescloud/backend-app/internal/apps/domain/entity"
 	"nescloud/backend-app/internal/errs"
+
+	"github.com/lib/pq"
 )
 
 type FolderRepo struct{}
@@ -183,4 +185,41 @@ func (r *FolderRepo) CountChildren(tx *sql.Tx, ctx context.Context, parentID str
 	var count int
 	err := tx.QueryRowContext(ctx, query, parentID).Scan(&count)
 	return count, err
+}
+
+func (r *FolderRepo) FindSubfolderIDsRecursive(tx *sql.Tx, ctx context.Context, folderID string) ([]string, error) {
+	query := `
+		WITH RECURSIVE subfolders AS (
+			SELECT id FROM folders WHERE id = $1 AND deleted_at IS NULL
+			UNION ALL
+			SELECT f.id FROM folders f
+			INNER JOIN subfolders s ON f.parent_folder_id = s.id
+			WHERE f.deleted_at IS NULL
+		)
+		SELECT id FROM subfolders
+	`
+	rows, err := tx.QueryContext(ctx, query, folderID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var ids []string
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		ids = append(ids, id)
+	}
+	if ids == nil {
+		ids = []string{}
+	}
+	return ids, nil
+}
+
+func (r *FolderRepo) BulkHardDelete(tx *sql.Tx, ctx context.Context, ids []string) error {
+	query := `DELETE FROM folders WHERE id = ANY($1)`
+	_, err := tx.ExecContext(ctx, query, pq.Array(ids))
+	return err
 }

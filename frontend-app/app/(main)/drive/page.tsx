@@ -168,6 +168,7 @@ export default function DrivePage() {
   const [createError, setCreateError] = useState("");
   const [filePage, setFilePage] = useState(1);
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [showRenameModal, setShowRenameModal] = useState(false);
@@ -425,10 +426,21 @@ export default function DrivePage() {
         size: selectedFile.size,
       });
 
-      await fetch(res.data.upload_url, {
-        method: "PUT",
-        body: selectedFile,
-        headers: { "Content-Type": selectedFile.type || "application/octet-stream" },
+      await new Promise<void>((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.upload.onprogress = (e) => {
+          if (e.lengthComputable) {
+            setUploadProgress(Math.round((e.loaded / e.total) * 100));
+          }
+        };
+        xhr.open("PUT", res.data.upload_url);
+        xhr.setRequestHeader("Content-Type", selectedFile.type || "application/octet-stream");
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) resolve();
+          else reject(new Error("Upload failed"));
+        };
+        xhr.onerror = () => reject(new Error("Upload failed"));
+        xhr.send(selectedFile);
       });
 
       await api.post<ApiResponse<null>>("/files/complete", { file_id: res.data.file_id });
@@ -452,6 +464,7 @@ export default function DrivePage() {
       alert(message);
     } finally {
       setIsUploading(false);
+      setUploadProgress(0);
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
   }, [currentFolderId]);
@@ -980,6 +993,23 @@ export default function DrivePage() {
           </AlertDialog.Content>
         </AlertDialog.Portal>
       </AlertDialog.Root>
+
+      {isUploading && (
+        <div className="fixed bottom-4 right-4 z-50 w-80 rounded-lg border border-gray-200 bg-white p-4 shadow-lg dark:border-gray-700 dark:bg-gray-900">
+          <p className="mb-2 truncate text-sm font-medium text-gray-700 dark:text-gray-300">
+            Uploading...
+          </p>
+          <div className="h-2 rounded-full bg-gray-200 dark:bg-gray-700">
+            <div
+              className="h-2 rounded-full bg-blue-600 transition-all duration-300"
+              style={{ width: `${uploadProgress}%` }}
+            />
+          </div>
+          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+            {uploadProgress}%
+          </p>
+        </div>
+      )}
     </>
   );
 }
